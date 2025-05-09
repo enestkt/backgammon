@@ -1,0 +1,17 @@
+model\Board.class
+ui\AnimationPanel.class
+ui\GamePanel.class
+model\Point.class
+logic\GameManager.class
+model\Die.class
+logic\MoveValidator.class
+ui\GameFrame.class
+model\Move.class
+ui\GamePanel$1.class
+ui\MainFrame.class
+ui\InfoPanel.class
+ui\GamePanel$2.class
+ui\AnimationPanel$1.class
+model\Player.class
+logic\DiceManager.class
+model\Color.class

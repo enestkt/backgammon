@@ -1,3 +1,4 @@
+network\Client.class
 model\Board.class
 ui\AnimationPanel.class
 ui\GamePanel.class
@@ -15,3 +16,4 @@ ui\AnimationPanel$1.class
 model\Player.class
 logic\DiceManager.class
 model\Color.class
+network\Server.class

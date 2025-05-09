@@ -6,7 +6,9 @@ import model.Color;
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.io.IOException;
 import java.util.List;
+import network.Client;
 
 /**
  * InfoPanel: Oyuncu bilgileri, zarlar, bar ve "Zar At" butonunu içeren panel.
@@ -57,6 +59,21 @@ public class InfoPanel extends JPanel {
         add(Box.createVerticalStrut(20));
 
         rollButton = new JButton("🎲 Zar At");
+        // Zar At butonunun altına ekle
+        JButton sendBoardButton = new JButton("Tahtayı Gönder");
+        sendBoardButton.addActionListener(e -> {
+            try {
+                Client client = new Client("127.0.0.1", 5000); // 5000 → server'daki port ile aynı olmalı
+                // ← Sunucu IP’sini burada değiştir
+                client.sendBoard(gameManager.getBoard());
+                JOptionPane.showMessageDialog(this, "Tahta başarıyla gönderildi.");
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Gönderme başarısız: " + ex.getMessage());
+            }
+        });
+        add(sendBoardButton);
+
         rollButton.addActionListener(e -> {
             gameManager.rollDice();
             gamePanel.repaint();

@@ -15,18 +15,16 @@ public class Client {
     private int serverPort;
 
     public Client(String serverIp, int serverPort) throws IOException {
-    this.serverIp = serverIp;
-    this.serverPort = serverPort;
-}
-
+        this.serverIp = serverIp;
+        this.serverPort = serverPort;
+    }
 
     public void sendBoard(Board board) {
-        try (Socket socket = new Socket(serverIp, serverPort);
-             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
+        try (Socket socket = new Socket(serverIp, serverPort); ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
 
             out.writeObject(board);
             out.flush();
-            System.out.println("Tahta sunucuya başarıyla gönderildi.");
+            System.out.println("Tahta sunucuya başarıyla gönderildi.ser");
 
         } catch (IOException e) {
             System.err.println("Sunucuya bağlanırken hata oluştu: " + e.getMessage());

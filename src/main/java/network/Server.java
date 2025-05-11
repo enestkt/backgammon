@@ -17,7 +17,7 @@ public class Server {
             while (true) {
                 try {
                     Socket clientSocket = serverSocket.accept();
-                    System.out.println("Bağlantı sağlandı: " + clientSocket.getInetAddress());
+                    System.out.println("Baglanti saglandi: " + clientSocket.getInetAddress());
 
                     ObjectInputStream input = new ObjectInputStream(clientSocket.getInputStream());
                     String message = (String) input.readObject();

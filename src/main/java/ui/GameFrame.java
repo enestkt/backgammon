@@ -4,6 +4,8 @@ import logic.GameManager;
 
 import javax.swing.*;
 import java.awt.*;
+import java.io.IOException;
+import network.Client;
 
 public class GameFrame extends JFrame {
 
@@ -11,7 +13,7 @@ public class GameFrame extends JFrame {
     private GamePanel gamePanel;
     private InfoPanel infoPanel;
 
-    public GameFrame(GameManager gameManager) {
+    public GameFrame(GameManager gameManager) throws IOException {
         this.gameManager = gameManager;
 
         setTitle("Tavla - Oyun");
@@ -22,7 +24,8 @@ public class GameFrame extends JFrame {
 
         // İlk önce GamePanel'i boş infoPanel'le değil, sonra bağlayacağız
         gamePanel = new GamePanel(gameManager); // ← InfoPanel olmadan oluştur
-        infoPanel = new InfoPanel(gameManager, gamePanel);
+        Client client = new Client("127.0.0.1", 5000); // Sunucuya bağlan
+        infoPanel = new InfoPanel(gameManager, client);
         gamePanel.setInfoPanel(infoPanel);      // ← Sonradan bağla
 
         add(infoPanel, BorderLayout.WEST);
@@ -31,4 +34,3 @@ public class GameFrame extends JFrame {
         setVisible(true);
     }
 }
-

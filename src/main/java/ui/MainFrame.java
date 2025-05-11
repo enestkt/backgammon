@@ -81,7 +81,13 @@ public class MainFrame extends JFrame {
 
         AnimationPanel animPanel = new AnimationPanel(() -> {
             animFrame.dispose();
-            new GameFrame(manager);
+
+            try {
+                new GameFrame(manager);
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(null, "Bağlantı hatası: " + e.getMessage());
+            }
+
         });
 
         animFrame.add(animPanel);
@@ -99,31 +105,36 @@ public class MainFrame extends JFrame {
             System.err.println("Bağlantı hatası: " + ex.getMessage());
         }
     }
+
     private void startOfflineGame() {
-    String white = whiteNameField.getText().trim();
-    String black = blackNameField.getText().trim();
+        String white = whiteNameField.getText().trim();
+        String black = blackNameField.getText().trim();
 
-    if (white.isEmpty() || black.isEmpty()) {
-        JOptionPane.showMessageDialog(this, "Her iki oyuncu adını da girin.");
-        return;
+        if (white.isEmpty() || black.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Her iki oyuncu adını da girin.");
+            return;
+        }
+
+        GameManager manager = new GameManager(white, black);
+        JFrame animFrame = new JFrame("Taşlar Toplanıyor...");
+        animFrame.setSize(500, 300);
+        animFrame.setLocationRelativeTo(null);
+        animFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+
+        AnimationPanel animPanel = new AnimationPanel(() -> {
+            animFrame.dispose();
+            try {
+                new GameFrame(manager);
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(null, "Bağlantı hatası: " + e.getMessage());
+            }
+
+        });
+
+        animFrame.add(animPanel);
+        animFrame.setVisible(true);
+        dispose(); // Ana menüyü kapat
     }
-
-    GameManager manager = new GameManager(white, black);
-    JFrame animFrame = new JFrame("Taşlar Toplanıyor...");
-    animFrame.setSize(500, 300);
-    animFrame.setLocationRelativeTo(null);
-    animFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-    AnimationPanel animPanel = new AnimationPanel(() -> {
-        animFrame.dispose();
-        new GameFrame(manager);
-    });
-
-    animFrame.add(animPanel);
-    animFrame.setVisible(true);
-    dispose(); // Ana menüyü kapat
-}
-
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new MainFrame().setVisible(true));

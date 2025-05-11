@@ -1,33 +1,52 @@
 package network;
 
-import model.Board;
+import java.io.*;
+import java.net.*;
 
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.net.Socket;
-
-/**
- * Client: Sunucuya bağlanıp Board nesnesini gönderir.
- */
 public class Client {
 
     private String serverIp;
     private int serverPort;
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
 
     public Client(String serverIp, int serverPort) throws IOException {
         this.serverIp = serverIp;
         this.serverPort = serverPort;
+        connectToServer();
     }
 
-    public void sendBoard(Board board) {
-        try (Socket socket = new Socket(serverIp, serverPort); ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
+    private void connectToServer() throws IOException {
+        socket = new Socket(serverIp, serverPort);
+        out = new PrintWriter(socket.getOutputStream(), true);
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        System.out.println("Sunucuya bağlandı: " + serverIp);
+        listenForMessages();
+    }
 
-            out.writeObject(board);
-            out.flush();
-            System.out.println("Tahta sunucuya başarıyla gönderildi.ser");
+    private void listenForMessages() {
+        new Thread(() -> {
+            try {
+                String message;
+                while ((message = in.readLine()) != null) {
+                    System.out.println("Sunucudan gelen: " + message);
+                }
+            } catch (IOException e) {
+                System.err.println("Bağlantı hatası: " + e.getMessage());
+            }
+        }).start();
+    }
 
+    public void sendMessage(String message) {
+        out.println(message);
+    }
+
+    public void close() {
+        try {
+            socket.close();
         } catch (IOException e) {
-            System.err.println("Sunucuya bağlanırken hata oluştu: " + e.getMessage());
+            System.err.println("Bağlantı kapatma hatası: " + e.getMessage());
         }
     }
 }

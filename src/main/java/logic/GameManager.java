@@ -157,8 +157,10 @@ public class GameManager {
         if (fromPoint.isEmpty() || fromPoint.getColor() != currentPlayer.getColor()) {
             return false;
         }
+
         int distance = (currentPlayer.getColor() == Color.WHITE) ? to - from : from - to;
 
+        // ❗ Bearing off kontrolü: Evde ve dışarı çıkıyorsa
         if ((currentPlayer.getColor() == Color.WHITE && to >= 24) || (currentPlayer.getColor() == Color.BLACK && to < 0)) {
             if (tryBearOff(from)) {
                 if (hasWon(currentPlayer)) {
@@ -169,16 +171,20 @@ public class GameManager {
             return false;
         }
 
+        // 🛑 Zar kontrolü: Uygun hareket mesafesi var mı?
         if (distance <= 0 || !moveValues.contains(distance)) {
             return false;
         }
+
         Point toPoint = board.getPoint(to);
 
+        // 🔴 Rakip taşı kırma
         if (!toPoint.isEmpty() && toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() == 1) {
             board.addToBar(toPoint.getColor());
             toPoint.removeChecker();
         }
 
+        // 🚫 Rakip taşın bloğu varsa gidemez
         if (!toPoint.isEmpty() && toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() > 1) {
             return false;
         }
@@ -189,9 +195,18 @@ public class GameManager {
             JOptionPane.showMessageDialog(null, ex.getMessage(), "Geçersiz Hamle", JOptionPane.WARNING_MESSAGE);
             return false;
         }
+
+        // 🚩 Taşı kaldırma ve zar güncelleme
         fromPoint.removeChecker();
         moveValues.remove((Integer) distance);
 
+        // ⚠️ Diğer zarın da oynanabileceğini kontrol et
+        if (!moveValues.isEmpty() && anyMovePossible()) {
+            // Sıra değiştirmeden devam et
+            return true;
+        }
+
+        // 🌀 Eğer zarlar bittiyse sıra değiştir
         if (moveValues.isEmpty() || !anyMovePossible()) {
             switchTurn();
         }

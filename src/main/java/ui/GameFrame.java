@@ -27,6 +27,7 @@ public class GameFrame extends JFrame {
         infoPanel = new InfoPanel(gameManager, client);
         gamePanel.setInfoPanel(infoPanel);      // ← Sonradan bağla
 
+        setLayout(new BorderLayout());
         add(infoPanel, BorderLayout.WEST);
         add(gamePanel, BorderLayout.CENTER);
 

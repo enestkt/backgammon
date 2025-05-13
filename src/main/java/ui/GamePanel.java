@@ -1,4 +1,5 @@
 package ui;
+
 import logic.GameManager;
 import model.Color;
 import model.Player;
@@ -21,7 +22,7 @@ public class GamePanel extends JPanel {
 
     public GamePanel(GameManager gameManager) {
         this.gameManager = gameManager;
-        setBackground(convertToAwtColor(Color.LIGHT_GRAY));
+        setBackground(new java.awt.Color(200, 200, 200));  // Nötr arka plan rengi,
 
         addMouseListener(new MouseAdapter() {
             @Override
@@ -136,22 +137,62 @@ public class GamePanel extends JPanel {
         int triangleHeight = height / 2 - 20;
         int middleX = width / 2 - barWidth / 2;
 
-        g.setColor(convertToAwtColor(Color.GRAY));     // Gri Renk
-
+        // Orta Barı Çiz
+        g.setColor(convertToAwtColor(Color.GRAY));
         g.fillRect(middleX, 0, barWidth, height);
+
+        // Üst Üçgenleri Çiz
+        for (int i = 0; i < 12; i++) {
+            int x = (i < 6) ? i * triangleWidth : i * triangleWidth + barWidth;
+            int[] xPoints = {x, x + triangleWidth / 2, x + triangleWidth};
+            int[] yPoints = {0, triangleHeight, 0};
+            g.setColor((i % 2 == 0) ? convertToAwtColor(Color.DARK_GRAY) : convertToAwtColor(Color.ORANGE));
+            g.fillPolygon(xPoints, yPoints, 3);
+            drawCheckers(g, i, x, 5, triangleWidth, true);
+        }
+
+        // Alt Üçgenleri Çiz
+        for (int i = 0; i < 12; i++) {
+            int index = 23 - i;
+            int x = (i < 6) ? i * triangleWidth : i * triangleWidth + barWidth;
+            int[] xPoints = {x, x + triangleWidth / 2, x + triangleWidth};
+            int[] yPoints = {getHeight(), getHeight() - triangleHeight, getHeight()};
+            g.setColor((i % 2 == 0) ? convertToAwtColor(Color.DARK_GRAY) : convertToAwtColor(Color.ORANGE));
+            g.fillPolygon(xPoints, yPoints, 3);
+            drawCheckers(g, index, x, getHeight() - 5, triangleWidth, false);
+        }
     }
 
-    private void drawCheckers(Graphics g, int pointIndex, int xStart, int yStart, int diameter) {
+    private void drawCheckers(Graphics g, int pointIndex, int xStart, int yStart, int triangleWidth, boolean top) {
         Point point = gameManager.getBoard().getPoint(pointIndex);
         if (point.isEmpty()) {
             return;
         }
 
-        java.awt.Color color = convertToAwtColor(point.getColor());
-        g.setColor(color);
-        g.fillOval(xStart, yStart, diameter, diameter);
-        g.setColor(convertToAwtColor(Color.BLACK));    // Siyah Renk
-        g.drawOval(xStart, yStart, diameter, diameter);
+        Color modelColor = point.getColor();
+        java.awt.Color baseColor = convertToAwtColor(modelColor);
+        int count = point.getCount();
+        int diameter = Math.min(triangleWidth - 6, 40);
+        int spacing = diameter + 4;
+        int x = xStart + (triangleWidth - diameter) / 2;
+
+        for (int i = 0; i < count; i++) {
+            int y = top ? yStart + i * spacing : yStart - (i + 1) * spacing;
+
+            // 🟥 Eğer bu taş seçiliyse kırmızı renkte çiz
+            if (pointIndex == selectedPointIndex && i == count - 1) {
+                g.setColor(java.awt.Color.RED); // Kırmızı renkte dolgu
+                g.fillOval(x - 2, y - 2, diameter + 4, diameter + 4); // Biraz daha büyük çizerek vurgula
+            } else {
+                // Ana taşın çizimi
+                g.setColor(baseColor);
+                g.fillOval(x, y, diameter, diameter);
+            }
+
+            // Kenarlık rengi (kontrast olacak şekilde)
+            g.setColor(baseColor == java.awt.Color.WHITE ? java.awt.Color.BLACK : java.awt.Color.WHITE);
+            g.drawOval(x, y, diameter, diameter);
+        }
     }
 
     private void drawBarChecker(Graphics g) {
@@ -165,18 +206,43 @@ public class GamePanel extends JPanel {
         int diameter = 40;
         int x = getWidth() / 2 - diameter / 2;
         int y = getHeight() / 2 - diameter / 2;
+
+        // 🔴 Yutulan taşa tıklanmışsa kırmızı olarak çiz
+        if (barCheckerSelected) {
+            g.setColor(java.awt.Color.RED);
+            g.fillOval(x - 2, y - 2, diameter + 4, diameter + 4);
+        }
+
+        // Yutulan taşın ana rengi
+        g.setColor(drawColor);
         g.fillOval(x, y, diameter, diameter);
+        g.setColor(drawColor == java.awt.Color.WHITE ? java.awt.Color.BLACK : java.awt.Color.WHITE);
+        g.drawOval(x, y, diameter, diameter);
     }
 
     private void drawBarTargets(Graphics g) {
         Color currentColor = gameManager.getCurrentPlayer().getColor();
-        List<Integer> targets = gameManager.getBarEntryTargets(currentColor);
 
-        for (int index : targets) {
-            int x = (index % 12) * 50 + 25;
-            int y = (index / 12) * 50 + 25;
-            g.setColor(convertToAwtColor(Color.CYAN));     // Mavi (Turkuaz) Renk
-            g.fillOval(x - 5, y - 5, 10, 10);
+        // Sadece yutulan taş varsa göster
+        if (!gameManager.hasBarChecker(currentColor)) {
+            return;
+        }
+
+        List<Integer> validTargets = gameManager.getBarEntryTargets(currentColor);
+        int width = getWidth();
+        int height = getHeight();
+        int barWidth = 40;
+        int triangleWidth = (width - barWidth) / 12;
+
+        for (int index : validTargets) {
+            int i = (index < 12) ? index : 23 - index;
+            int x = (i < 6) ? i * triangleWidth : i * triangleWidth + barWidth;
+            int xCenter = x + triangleWidth / 2;
+            int y = (index < 12) ? 5 : height - 45;
+
+            // 🌀 Yutulan taş geri dönerken gidilebilecek noktaları hafif Cyan ile göster
+            g.setColor(new java.awt.Color(0, 255, 255, 100));  // Şeffaf Cyan
+            g.fillOval(xCenter - 20, y - 20, 40, 40);  // Noktanın büyüklüğünü arttırdık
         }
     }
 
@@ -196,17 +262,26 @@ public class GamePanel extends JPanel {
             g.fillOval(x, y + 200 + i * (diameter + 5), diameter, diameter);
         }
     }
-private java.awt.Color convertToAwtColor(Color color) {
-    return switch (color) {
-        case WHITE -> java.awt.Color.WHITE;
-        case BLACK -> java.awt.Color.BLACK;
-        case LIGHT_GRAY -> java.awt.Color.LIGHT_GRAY;
-        case DARK_GRAY -> java.awt.Color.DARK_GRAY;
-        case ORANGE -> java.awt.Color.ORANGE;
-        case GRAY -> java.awt.Color.GRAY;
-        case CYAN -> java.awt.Color.CYAN;
-        default -> java.awt.Color.BLACK; // Varsayılan renk
-    };
-}
+
+    private java.awt.Color convertToAwtColor(Color color) {
+        return switch (color) {
+            case WHITE ->
+                java.awt.Color.WHITE;
+            case BLACK ->
+                java.awt.Color.BLACK;
+            case LIGHT_GRAY ->
+                java.awt.Color.LIGHT_GRAY;
+            case DARK_GRAY ->
+                java.awt.Color.DARK_GRAY;
+            case ORANGE ->
+                java.awt.Color.ORANGE;
+            case GRAY ->
+                java.awt.Color.GRAY;
+            case CYAN ->
+                java.awt.Color.CYAN;
+            default ->
+                java.awt.Color.BLACK; // Varsayılan renk
+        };
+    }
 
 }

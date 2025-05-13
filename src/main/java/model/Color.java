@@ -7,7 +7,9 @@ public enum Color implements Serializable {
     BLACK,
     LIGHT_GRAY,
     DARK_GRAY,
-    ORANGE;
+    ORANGE,
+    GRAY,
+    CYAN;
 
     public static Color fromString(String value) {
         return switch (value.toLowerCase()) {
@@ -16,6 +18,8 @@ public enum Color implements Serializable {
             case "light_gray" -> LIGHT_GRAY;
             case "dark_gray" -> DARK_GRAY;
             case "orange" -> ORANGE;
+            case "gray" -> GRAY;
+            case "cyan" -> CYAN;
             default -> throw new IllegalArgumentException("Unknown color: " + value);
         };
     }
@@ -28,6 +32,8 @@ public enum Color implements Serializable {
             case LIGHT_GRAY -> "light_gray";
             case DARK_GRAY -> "dark_gray";
             case ORANGE -> "orange";
+            case GRAY -> "gray";
+            case CYAN -> "cyan";
         };
     }
 }

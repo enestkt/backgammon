@@ -8,66 +8,65 @@ import java.util.concurrent.*;
 public class MultiClientServer {
     private static final int PORT = 5000;
     private static final List<ClientHandler> clients = Collections.synchronizedList(new ArrayList<>());
+    private static int playerCount = 1;
 
     public static void main(String[] args) {
         System.out.println("Çoklu Oyuncu Sunucusu başlatılıyor...");
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Yeni oyuncu bağlandı: " + clientSocket.getInetAddress());
-                ClientHandler clientHandler = new ClientHandler(clientSocket);
+                String playerName = "Player " + playerCount;
+                playerCount++;
+                System.out.println(playerName + " bağlandı: " + clientSocket.getInetAddress());
+                ClientHandler clientHandler = new ClientHandler(clientSocket, playerName);
                 clients.add(clientHandler);
                 new Thread(clientHandler).start();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Sunucu başlatılamadı: " + e.getMessage());
         }
     }
 
     static class ClientHandler implements Runnable {
         private final Socket socket;
+        private final String playerName;
         private PrintWriter out;
-        private BufferedReader in;
-        private String playerName;
 
-        public ClientHandler(Socket socket) {
+        ClientHandler(Socket socket, String playerName) {
             this.socket = socket;
-            try {
-                this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                this.out = new PrintWriter(socket.getOutputStream(), true);
-                this.playerName = in.readLine();
-                broadcast(playerName + " oyuna katıldı!");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            this.playerName = playerName;
         }
 
         @Override
         public void run() {
-            try {
+            try (
+                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
+            ) {
+                this.out = out;
+                broadcast(playerName + " katıldı!");
                 String message;
                 while ((message = in.readLine()) != null) {
-                    System.out.println("[" + playerName + "]: " + message);
-                    broadcast("[" + playerName + "]: " + message);
+                    broadcast(playerName + ": " + message);
                 }
             } catch (IOException e) {
-                System.out.println(playerName + " bağlantıyı kaybetti.");
+                System.err.println("Bağlantı kesildi: " + playerName);
             } finally {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
                 clients.remove(this);
-                broadcast(playerName + " oyundan ayrıldı.");
+                broadcast(playerName + " ayrıldı.");
+                try { socket.close(); } catch (IOException e) { }
             }
         }
 
-        private void broadcast(String message) {
-            synchronized (clients) {
-                for (ClientHandler client : clients) {
-                    client.out.println(message);
-                }
+        void broadcast(String message) {
+            for (ClientHandler client : clients) {
+                client.sendMessage(message);
+            }
+        }
+
+        void sendMessage(String message) {
+            if (out != null) {
+                out.println(message);
             }
         }
     }

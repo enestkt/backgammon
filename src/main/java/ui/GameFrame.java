@@ -1,7 +1,6 @@
 package ui;
 
 import logic.GameManager;
-
 import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
@@ -9,9 +8,9 @@ import network.Client;
 
 public class GameFrame extends JFrame {
 
-    private GameManager gameManager;
-    private GamePanel gamePanel;
-    private InfoPanel infoPanel;
+    private final GameManager gameManager;
+    private final GamePanel gamePanel;
+    private final InfoPanel infoPanel;
 
     public GameFrame(GameManager gameManager) throws IOException {
         this.gameManager = gameManager;

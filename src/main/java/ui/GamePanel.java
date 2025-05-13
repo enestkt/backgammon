@@ -1,5 +1,4 @@
 package ui;
-
 import logic.GameManager;
 import model.Color;
 import model.Player;
@@ -7,10 +6,11 @@ import model.Point;
 
 import javax.swing.*;
 import java.awt.*;
-import static java.awt.Color.LIGHT_GRAY;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import ui.InfoPanel;
+import ui.MainFrame;
 
 public class GamePanel extends JPanel {
 
@@ -80,9 +80,7 @@ public class GamePanel extends JPanel {
             JOptionPane.showMessageDialog(this, current.getName() + " oyunu kazandı! 🎉", "Tebrikler", JOptionPane.INFORMATION_MESSAGE);
             int response = JOptionPane.showConfirmDialog(this, "Yeni oyun başlatılsın mı?", "Yeniden Başlat", JOptionPane.YES_NO_OPTION);
             if (response == JOptionPane.YES_OPTION) {
-                SwingUtilities.invokeLater(() -> {
-                    new MainFrame();
-                });
+                SwingUtilities.invokeLater(() -> new MainFrame());
             }
             System.exit(0);
         }
@@ -138,54 +136,22 @@ public class GamePanel extends JPanel {
         int triangleHeight = height / 2 - 20;
         int middleX = width / 2 - barWidth / 2;
 
-        g.setColor(new java.awt.Color(150, 150, 150));
+        g.setColor(convertToAwtColor(Color.GRAY));     // Gri Renk
+
         g.fillRect(middleX, 0, barWidth, height);
-
-        for (int i = 0; i < 12; i++) {
-            int x = (i < 6) ? i * triangleWidth : i * triangleWidth + barWidth;
-            int[] xPoints = {x, x + triangleWidth / 2, x + triangleWidth};
-            int[] yPoints = {0, triangleHeight, 0};
-            g.setColor((i % 2 == 0) ? java.awt.Color.DARK_GRAY : java.awt.Color.ORANGE);
-            g.setColor((i % 2 == 0) ? java.awt.Color.DARK_GRAY : java.awt.Color.ORANGE);
-            g.fillPolygon(xPoints, yPoints, 3);
-            drawCheckers(g, i, x, 5, triangleWidth, true);
-        }
-
-        for (int i = 0; i < 12; i++) {
-            int index = 23 - i;
-            int x = (i < 6) ? i * triangleWidth : i * triangleWidth + barWidth;
-            int[] xPoints = {x, x + triangleWidth / 2, x + triangleWidth};
-            int[] yPoints = {getHeight(), getHeight() - triangleHeight, getHeight()};
-            g.setColor((i % 2 == 0) ? java.awt.Color.DARK_GRAY : java.awt.Color.ORANGE);
-            g.fillPolygon(xPoints, yPoints, 3);
-            drawCheckers(g, index, x, getHeight() - 5, triangleWidth, false);
-        }
     }
 
-    private void drawCheckers(Graphics g, int pointIndex, int xStart, int yStart, int triangleWidth, boolean top) {
+    private void drawCheckers(Graphics g, int pointIndex, int xStart, int yStart, int diameter) {
         Point point = gameManager.getBoard().getPoint(pointIndex);
         if (point.isEmpty()) {
             return;
         }
 
-        Color modelColor = point.getColor();
-        java.awt.Color baseColor = convertToAwtColor(modelColor);
-        int count = point.getCount();
-        int diameter = Math.min(triangleWidth - 6, 40);
-        int spacing = diameter + 4;
-        int x = xStart + (triangleWidth - diameter) / 2;
-
-        for (int i = 0; i < count; i++) {
-            int y = top ? yStart + i * spacing : yStart - (i + 1) * spacing;
-            if (pointIndex == selectedPointIndex && i == count - 1) {
-                g.setColor(java.awt.Color.RED);
-            } else {
-                g.setColor(baseColor);
-            }
-            g.fillOval(x, y, diameter, diameter);
-            g.setColor(baseColor == java.awt.Color.WHITE ? java.awt.Color.BLACK : java.awt.Color.WHITE);
-            g.drawOval(x, y, diameter, diameter);
-        }
+        java.awt.Color color = convertToAwtColor(point.getColor());
+        g.setColor(color);
+        g.fillOval(xStart, yStart, diameter, diameter);
+        g.setColor(convertToAwtColor(Color.BLACK));    // Siyah Renk
+        g.drawOval(xStart, yStart, diameter, diameter);
     }
 
     private void drawBarChecker(Graphics g) {
@@ -200,75 +166,47 @@ public class GamePanel extends JPanel {
         int x = getWidth() / 2 - diameter / 2;
         int y = getHeight() / 2 - diameter / 2;
         g.fillOval(x, y, diameter, diameter);
-        g.setColor(drawColor == java.awt.Color.WHITE ? java.awt.Color.BLACK : java.awt.Color.WHITE);
-        g.drawOval(x, y, diameter, diameter);
-
-        if (barCheckerSelected) {
-            g.setColor(java.awt.Color.RED);
-            g.drawOval(x - 2, y - 2, diameter + 4, diameter + 4);
-        }
     }
 
     private void drawBarTargets(Graphics g) {
         Color currentColor = gameManager.getCurrentPlayer().getColor();
-        if (!gameManager.hasBarChecker(currentColor)) {
-            return;
-        }
+        List<Integer> targets = gameManager.getBarEntryTargets(currentColor);
 
-        List<Integer> validTargets = gameManager.getBarEntryTargets(currentColor);
-        int width = getWidth();
-        int height = getHeight();
-        int barWidth = 40;
-        int triangleWidth = (width - barWidth) / 12;
-
-        for (int index : validTargets) {
-            int i = (index < 12) ? index : 23 - index;
-            int x = (i < 6) ? i * triangleWidth : i * triangleWidth + barWidth;
-            int xCenter = x + triangleWidth / 2;
-            int y = (index < 12) ? 5 : height - 45;
-
-            g.setColor(java.awt.Color.CYAN);
-            g.fillOval(xCenter - 10, y, 20, 20);
+        for (int index : targets) {
+            int x = (index % 12) * 50 + 25;
+            int y = (index / 12) * 50 + 25;
+            g.setColor(convertToAwtColor(Color.CYAN));     // Mavi (Turkuaz) Renk
+            g.fillOval(x - 5, y - 5, 10, 10);
         }
     }
 
     private void drawBorneOff(Graphics g) {
+        int x = getWidth() - 50;
+        int y = 20;
         int diameter = 30;
-        int spacing = diameter + 4;
-        int rightEdge = getWidth() - diameter - 10;
 
-        g.setColor(java.awt.Color.WHITE);
         for (int i = 0; i < gameManager.getBoard().getBorneOff(Color.WHITE); i++) {
-            int y = 10 + i * spacing;
-            g.fillOval(rightEdge, y, diameter, diameter);
-            g.setColor(java.awt.Color.BLACK);
-            g.drawOval(rightEdge, y, diameter, diameter);
-            g.setColor(java.awt.Color.WHITE);
+            g.setColor(convertToAwtColor(Color.WHITE));
+
+            g.fillOval(x, y + i * (diameter + 5), diameter, diameter);
         }
 
-        g.setColor(java.awt.Color.BLACK);
         for (int i = 0; i < gameManager.getBoard().getBorneOff(Color.BLACK); i++) {
-            int y = getHeight() - 10 - diameter - i * spacing;
-            g.fillOval(rightEdge, y, diameter, diameter);
-            g.setColor(java.awt.Color.WHITE);
-            g.drawOval(rightEdge, y, diameter, diameter);
-            g.setColor(java.awt.Color.BLACK);
+            g.setColor(convertToAwtColor(Color.BLACK));
+            g.fillOval(x, y + 200 + i * (diameter + 5), diameter, diameter);
         }
     }
-
-    private java.awt.Color convertToAwtColor(Color color) {
-        return switch (color) {
-            case WHITE ->
-                java.awt.Color.WHITE;
-            case BLACK ->
-                java.awt.Color.BLACK;
-            case LIGHT_GRAY ->
-                java.awt.Color.LIGHT_GRAY;
-            case DARK_GRAY ->
-                java.awt.Color.DARK_GRAY;
-            case ORANGE ->
-                java.awt.Color.ORANGE;
-        };
-    }
+private java.awt.Color convertToAwtColor(Color color) {
+    return switch (color) {
+        case WHITE -> java.awt.Color.WHITE;
+        case BLACK -> java.awt.Color.BLACK;
+        case LIGHT_GRAY -> java.awt.Color.LIGHT_GRAY;
+        case DARK_GRAY -> java.awt.Color.DARK_GRAY;
+        case ORANGE -> java.awt.Color.ORANGE;
+        case GRAY -> java.awt.Color.GRAY;
+        case CYAN -> java.awt.Color.CYAN;
+        default -> java.awt.Color.BLACK; // Varsayılan renk
+    };
+}
 
 }

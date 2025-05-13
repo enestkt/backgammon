@@ -5,13 +5,11 @@ ui\GamePanel.class
 model\Point.class
 logic\GameManager.class
 model\Die.class
-ui\MainFrame$1.class
 logic\MoveValidator.class
 ui\GameFrame.class
 model\Move.class
 ui\GamePanel$1.class
 ui\MainFrame.class
-ui\MainFrame$2.class
 network\MultiClientServer$ClientHandler.class
 ui\InfoPanel.class
 network\MultiClientServer.class

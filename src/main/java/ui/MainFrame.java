@@ -34,9 +34,9 @@ public class MainFrame extends JFrame {
     private void startOfflineGame() {
         try {
             GameManager manager = new GameManager("Player 1", "Player 2");
-            new GameFrame(manager);
+            new GameFrame(manager, false); // Offline olarak başlat
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(null, "Bağlantı hatası: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "Oyun başlatma hatası: " + e.getMessage());
         }
     }
 
@@ -45,7 +45,7 @@ public class MainFrame extends JFrame {
         if (ipAddress != null && !ipAddress.isEmpty()) {
             try {
                 GameManager manager = new GameManager("Player 1", "Player 2");
-                new GameFrame(manager);
+                new GameFrame(manager, true); // Online olarak başlat
             } catch (IOException e) {
                 JOptionPane.showMessageDialog(null, "Bağlantı hatası: " + e.getMessage());
             }

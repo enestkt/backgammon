@@ -23,6 +23,7 @@ public class InfoPanel extends JPanel {
     private JLabel barWhiteLabel;
     private JLabel barBlackLabel;
     private JButton rollButton;
+    private JButton passButton;
 
     public InfoPanel(GameManager gameManager, Client client) {
         this.gameManager = gameManager;
@@ -45,14 +46,6 @@ public class InfoPanel extends JPanel {
         barWhiteLabel.setFont(new Font("Arial", Font.BOLD, 16));
         barBlackLabel.setFont(new Font("Arial", Font.BOLD, 16));
 
-        rollButton = new JButton("🎲 Zar At");
-        rollButton.setFont(new Font("Arial", Font.BOLD, 14));
-        rollButton.setPreferredSize(new Dimension(100, 40));
-        rollButton.addActionListener(e -> {
-            gameManager.rollDice();
-            updateInfo();
-        });
-
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new GridLayout(6, 1, 5, 5));
         infoPanel.add(playerLabel);
@@ -60,8 +53,30 @@ public class InfoPanel extends JPanel {
         infoPanel.add(remainingLabel);
         infoPanel.add(barWhiteLabel);
         infoPanel.add(barBlackLabel);
-        infoPanel.add(rollButton);
 
+        // Buton Paneli
+        JPanel buttonPanel = new JPanel(new BorderLayout());
+
+        // "Hamle Yapamıyorum" Butonu
+        passButton = new JButton("Hamle Yapamıyorum");
+        passButton.setFont(new Font("Arial", Font.PLAIN, 12));
+        passButton.setPreferredSize(new Dimension(280, 30));
+        passButton.addActionListener(e -> handlePassTurn());
+        buttonPanel.add(passButton, BorderLayout.NORTH);
+
+        // "Zar At" Butonu
+        rollButton = new JButton("🎲 Zar At");
+        rollButton.setFont(new Font("Arial", Font.BOLD, 14));
+        rollButton.setPreferredSize(new Dimension(280, 40));
+        rollButton.addActionListener(e -> {
+            gameManager.rollDice();
+            updateInfo();
+        });
+        buttonPanel.add(rollButton, BorderLayout.SOUTH);
+
+        infoPanel.add(buttonPanel);
+
+        // Sohbet Alanı
         chatArea = new JTextArea();
         chatArea.setEditable(false);
         JScrollPane chatScroll = new JScrollPane(chatArea);
@@ -93,7 +108,8 @@ public class InfoPanel extends JPanel {
     }
 
     public void updateInfo() {
-        playerLabel.setText("Sıra: " + gameManager.getCurrentPlayer().getName() + " (" + gameManager.getCurrentPlayer().getColor().toString().toUpperCase() + ")");
+        playerLabel.setText("Sıra: " + gameManager.getCurrentPlayer().getName() + 
+            " (" + gameManager.getCurrentPlayer().getColor().toString().toUpperCase() + ")");
 
         int d1 = gameManager.getDiceManager().getDie1();
         int d2 = gameManager.getDiceManager().getDie2();
@@ -108,5 +124,15 @@ public class InfoPanel extends JPanel {
 
     public void appendMessage(String message) {
         chatArea.append(message + "\n");
+    }
+
+    private void handlePassTurn() {
+        if (gameManager.hasNoAvailableMove()) {
+            JOptionPane.showMessageDialog(this, "Hareket yapacak taşınız yok. Sıra diğer oyuncuya geçti.");
+            gameManager.switchTurn();
+            updateInfo();
+        } else {
+            JOptionPane.showMessageDialog(this, "Hareket yapabileceğiniz taşlar var!");
+        }
     }
 }

@@ -17,6 +17,7 @@ public class GameManager {
     private Player currentPlayer;
     private DiceManager diceManager;
     private List<Integer> moveValues = new ArrayList<>();
+    private boolean diceRolled = false;
 
     public GameManager(String whiteName, String blackName) {
         this.whitePlayer = new Player(whiteName, Color.WHITE);
@@ -51,10 +52,17 @@ public class GameManager {
     }
 
     public void rollDice() {
+        if (diceRolled) {
+            JOptionPane.showMessageDialog(null, "Hamlenizi tamamlamadan tekrar zar atamazsınız!");
+            return;
+        }
         diceManager.rollDice();
+        diceRolled = true;
         moveValues.clear();
+
         int d1 = diceManager.getDie1();
         int d2 = diceManager.getDie2();
+
         if (d1 == d2) {
             for (int i = 0; i < 4; i++) {
                 moveValues.add(d1);
@@ -65,12 +73,13 @@ public class GameManager {
         }
     }
 
-    public boolean hasBarChecker(Color color) {
-        return board.getBarCount(color) > 0;
-    }
-
     public void switchTurn() {
         currentPlayer = (currentPlayer == whitePlayer) ? blackPlayer : whitePlayer;
+        diceRolled = false; // Hamle tamamlandı, zar atmaya izin ver.
+    }
+
+    public boolean hasBarChecker(Color color) {
+        return board.getBarCount(color) > 0;
     }
 
     public boolean hasWon(Player player) {
@@ -118,6 +127,25 @@ public class GameManager {
         }
 
         return false;
+    }
+
+    public boolean hasNoAvailableMove() {
+        for (int from = 0; from < 24; from++) {
+            Point point = board.getPoint(from);
+            if (!point.isEmpty() && point.getColor() == currentPlayer.getColor()) {
+                for (int move : moveValues) {
+                    int to = (currentPlayer.getColor() == Color.WHITE) ? from + move : from - move;
+                    if (to >= 0 && to < 24) {
+                        Point toPoint = board.getPoint(to);
+                        if (toPoint.isEmpty() || toPoint.getColor() == currentPlayer.getColor()
+                                || (toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() == 1)) {
+                            return false;  // Hareket yapabiliyorsa false dön
+                        }
+                    }
+                }
+            }
+        }
+        return true;  // Hareket yapılamıyorsa true dön
     }
 
     public boolean canBearOff(Color color) {

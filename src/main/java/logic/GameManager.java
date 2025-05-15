@@ -8,6 +8,7 @@ import model.Board;
 import model.Color;
 import model.Player;
 import model.Point;
+import network.MultiClientClient;
 
 public class GameManager {
 
@@ -18,6 +19,7 @@ public class GameManager {
     private DiceManager diceManager;
     private List<Integer> moveValues = new ArrayList<>();
     private boolean diceRolled = false;
+    private MultiClientClient client;
 
     public GameManager(String whiteName, String blackName) {
         this.whitePlayer = new Player(whiteName, Color.WHITE);
@@ -27,8 +29,16 @@ public class GameManager {
         this.diceManager = new DiceManager();
     }
 
+    public void setClient(MultiClientClient client) {
+        this.client = client;
+    }
+
     public Board getBoard() {
         return board;
+    }
+
+    public boolean isDiceRolled() {
+        return diceRolled;
     }
 
     public Player getCurrentPlayer() {
@@ -71,11 +81,16 @@ public class GameManager {
             moveValues.add(d1);
             moveValues.add(d2);
         }
+
+        // Zar atma bilgisini sunucuya gönder
+        if (client != null) {
+            client.sendMessage("ROLL:" + d1 + "," + d2);
+        }
     }
 
     public void switchTurn() {
         currentPlayer = (currentPlayer == whitePlayer) ? blackPlayer : whitePlayer;
-        diceRolled = false; // Hamle tamamlandı, zar atmaya izin ver.
+        diceRolled = false;
     }
 
     public boolean hasBarChecker(Color color) {
@@ -92,9 +107,6 @@ public class GameManager {
         }
         for (int die : moveValues) {
             int targetIndex = (currentPlayer.getColor() == Color.WHITE) ? die - 1 : 24 - die;
-            if (targetIndex < 0 || targetIndex >= 24) {
-                continue;
-            }
             Point to = board.getPoint(targetIndex);
             if (to.isEmpty() || to.getColor() == currentPlayer.getColor() || (to.getColor() != currentPlayer.getColor() && to.getCount() == 1)) {
                 return true;
@@ -103,55 +115,79 @@ public class GameManager {
         return false;
     }
 
-    public boolean tryBearOff(int fromIndex) {
-        Color color = currentPlayer.getColor();
-        if (!canBearOff(color)) {
+    public boolean moveChecker(int from, int to) {
+        Point fromPoint = board.getPoint(from);
+        int distance = (currentPlayer.getColor() == Color.WHITE) ? to - from : from - to;
+
+        if (fromPoint.isEmpty() || fromPoint.getColor() != currentPlayer.getColor() || distance <= 0 || !moveValues.contains(distance)) {
             return false;
         }
 
-        int bearingValue = (color == Color.WHITE) ? 23 - fromIndex + 1 : fromIndex + 1;
+        Point toPoint = board.getPoint(to);
 
+        // Rakip taşı kırma
+        if (!toPoint.isEmpty() && toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() == 1) {
+            board.addToBar(toPoint.getColor());
+            toPoint.removeChecker();
+        }
+
+        // Rakip bloğu kontrolü
+        if (!toPoint.isEmpty() && toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() > 1) {
+            return false;
+        }
+
+        try {
+            toPoint.addChecker(currentPlayer.getColor());
+            fromPoint.removeChecker();
+            moveValues.remove((Integer) distance);
+
+            // Hareket bilgisini sunucuya gönder
+            if (client != null) {
+                client.sendMessage("MOVE:" + from + ":" + to);
+            }
+
+            if (moveValues.isEmpty() || !anyMovePossible()) {
+                switchTurn();
+            }
+            return true;
+        } catch (IllegalStateException ex) {
+            JOptionPane.showMessageDialog(null, ex.getMessage(), "Geçersiz Hamle", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+    }
+
+    public boolean moveFromBar(int toIndex) {
+        Color color = currentPlayer.getColor();
         for (int die : moveValues) {
-            if (die == bearingValue) {
-                Point fromPoint = board.getPoint(fromIndex);
-                if (!fromPoint.isEmpty() && fromPoint.getColor() == color) {
-                    fromPoint.removeChecker();
-                    board.bearOff(color);
+            int target = (color == Color.WHITE) ? die - 1 : 24 - die;
+            Point point = board.getPoint(toIndex);
+
+            if (target == toIndex && (point.isEmpty() || point.getColor() == color || point.getCount() == 1)) {
+                try {
+                    point.addChecker(color);
+                    board.removeFromBar(color);
                     moveValues.remove((Integer) die);
+
+                    // Hareket bilgisini sunucuya gönder
+                    if (client != null) {
+                        client.sendMessage("MOVE_BAR:" + toIndex);
+                    }
+
                     if (moveValues.isEmpty()) {
                         switchTurn();
                     }
                     return true;
+                } catch (IllegalStateException ex) {
+                    JOptionPane.showMessageDialog(null, ex.getMessage(), "Geçersiz Hamle", JOptionPane.WARNING_MESSAGE);
                 }
             }
         }
-
         return false;
-    }
-
-    public boolean hasNoAvailableMove() {
-        for (int from = 0; from < 24; from++) {
-            Point point = board.getPoint(from);
-            if (!point.isEmpty() && point.getColor() == currentPlayer.getColor()) {
-                for (int move : moveValues) {
-                    int to = (currentPlayer.getColor() == Color.WHITE) ? from + move : from - move;
-                    if (to >= 0 && to < 24) {
-                        Point toPoint = board.getPoint(to);
-                        if (toPoint.isEmpty() || toPoint.getColor() == currentPlayer.getColor()
-                                || (toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() == 1)) {
-                            return false;  // Hareket yapabiliyorsa false dön
-                        }
-                    }
-                }
-            }
-        }
-        return true;  // Hareket yapılamıyorsa true dön
     }
 
     public boolean canBearOff(Color color) {
         int start = (color == Color.WHITE) ? 18 : 0;
         int end = (color == Color.WHITE) ? 24 : 6;
-
         for (int i = 0; i < 24; i++) {
             if (i >= start && i < end) {
                 continue;
@@ -164,133 +200,15 @@ public class GameManager {
         return true;
     }
 
-    public List<Integer> getBarEntryTargets(Color color) {
-        List<Integer> targets = new ArrayList<>();
-        for (int move : moveValues) {
-            int targetIndex = (color == Color.WHITE) ? move - 1 : 24 - move;
-            if (targetIndex >= 0 && targetIndex < 24) {
-                Point point = board.getPoint(targetIndex);
-                if (point.isEmpty()
-                        || point.getColor() == color
-                        || (point.getColor() != color && point.getCount() == 1)) {
-                    targets.add(targetIndex);
-                }
-            }
-        }
-        return targets;
-    }
-
-    public boolean moveChecker(int from, int to) {
-        Point fromPoint = board.getPoint(from);
-        if (fromPoint.isEmpty() || fromPoint.getColor() != currentPlayer.getColor()) {
-            return false;
-        }
-
-        int distance = (currentPlayer.getColor() == Color.WHITE) ? to - from : from - to;
-
-        // ❗ Bearing off kontrolü: Evde ve dışarı çıkıyorsa
-        if ((currentPlayer.getColor() == Color.WHITE && to >= 24) || (currentPlayer.getColor() == Color.BLACK && to < 0)) {
-            if (tryBearOff(from)) {
-                if (hasWon(currentPlayer)) {
-                    JOptionPane.showMessageDialog(null, currentPlayer.getName() + " kazandı!");
-                }
-                return true;
-            }
-            return false;
-        }
-
-        // 🛑 Zar kontrolü: Uygun hareket mesafesi var mı?
-        if (distance <= 0 || !moveValues.contains(distance)) {
-            return false;
-        }
-
-        Point toPoint = board.getPoint(to);
-
-        // 🔴 Rakip taşı kırma
-        if (!toPoint.isEmpty() && toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() == 1) {
-            board.addToBar(toPoint.getColor());
-            toPoint.removeChecker();
-        }
-
-        // 🚫 Rakip taşın bloğu varsa gidemez
-        if (!toPoint.isEmpty() && toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() > 1) {
-            return false;
-        }
-
-        try {
-            toPoint.addChecker(currentPlayer.getColor());
-        } catch (IllegalStateException ex) {
-            JOptionPane.showMessageDialog(null, ex.getMessage(), "Geçersiz Hamle", JOptionPane.WARNING_MESSAGE);
-            return false;
-        }
-
-        // 🚩 Taşı kaldırma ve zar güncelleme
-        fromPoint.removeChecker();
-        moveValues.remove((Integer) distance);
-
-        // ⚠️ Diğer zarın da oynanabileceğini kontrol et
-        if (!moveValues.isEmpty() && anyMovePossible()) {
-            // Sıra değiştirmeden devam et
-            return true;
-        }
-
-        // 🌀 Eğer zarlar bittiyse sıra değiştir
-        if (moveValues.isEmpty() || !anyMovePossible()) {
-            switchTurn();
-        }
-
-        return true;
-    }
-
-    public boolean moveFromBar(int toIndex) {
-        Color color = currentPlayer.getColor();
-        int fromIndex = (color == Color.WHITE) ? -1 : -2;
-        int expectedIndex = (color == Color.WHITE) ? toIndex : 23 - toIndex;
-
-        for (int die : moveValues) {
-            int target = (color == Color.WHITE) ? die - 1 : 24 - die;
-            if (target == toIndex) {
-                Point point = board.getPoint(toIndex);
-
-                if (point.isEmpty() || point.getColor() == color || point.getCount() == 1) {
-                    if (!point.isEmpty() && point.getColor() != color && point.getCount() == 1) {
-                        board.addToBar(point.getColor());
-                        point.removeChecker();
-                    }
-
-                    try {
-                        point.addChecker(color);
-                    } catch (IllegalStateException ex) {
-                        JOptionPane.showMessageDialog(null, ex.getMessage(), "Geçersiz Hamle", JOptionPane.WARNING_MESSAGE);
-                        return false;
-                    }
-
-                    board.removeFromBar(color);
-                    moveValues.remove((Integer) die);
-                    if (moveValues.isEmpty()) {
-                        switchTurn();
-                    }
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
     private boolean anyMovePossible() {
-        Color playerColor = currentPlayer.getColor();
-        if (board.getBarCount(playerColor) > 0) {
-            return canEnterFromBar();
-        }
-
         for (int from = 0; from < 24; from++) {
-            Point fromPoint = board.getPoint(from);
-            if (!fromPoint.isEmpty() && fromPoint.getColor() == playerColor) {
+            Point point = board.getPoint(from);
+            if (!point.isEmpty() && point.getColor() == currentPlayer.getColor()) {
                 for (int move : moveValues) {
-                    int to = (playerColor == Color.WHITE) ? from + move : from - move;
+                    int to = (currentPlayer.getColor() == Color.WHITE) ? from + move : from - move;
                     if (to >= 0 && to < 24) {
                         Point toPoint = board.getPoint(to);
-                        if (toPoint.isEmpty() || toPoint.getColor() == playerColor || (toPoint.getColor() != playerColor && toPoint.getCount() == 1)) {
+                        if (toPoint.isEmpty() || toPoint.getColor() == currentPlayer.getColor() || (toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() == 1)) {
                             return true;
                         }
                     }
@@ -299,4 +217,109 @@ public class GameManager {
         }
         return false;
     }
+
+    public boolean hasNoAvailableMove() {
+        for (int from = 0; from < 24; from++) {
+            Point point = board.getPoint(from);
+            if (!point.isEmpty() && point.getColor() == currentPlayer.getColor()) {
+                for (int move : moveValues) {
+                    int to = (currentPlayer.getColor() == Color.WHITE) ? from + move : from - move;
+                    if (to >= 0 && to < 24) {
+                        Point toPoint = board.getPoint(to);
+                        if (toPoint.isEmpty() || toPoint.getColor() == currentPlayer.getColor() || (toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() == 1)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    public List<Integer> getBarEntryTargets(Color color) {
+        List<Integer> targets = new ArrayList<>();
+        for (int move : moveValues) {
+            int targetIndex = (color == Color.WHITE) ? move - 1 : 24 - move;
+            Point point = board.getPoint(targetIndex);
+            if (point.isEmpty() || point.getColor() == color || (point.getColor() != color && point.getCount() == 1)) {
+                targets.add(targetIndex);
+            }
+        }
+        return targets;
+    }
+
+    public boolean tryBearOff(int fromIndex) {
+        Color color = currentPlayer.getColor();
+        if (!canBearOff(color)) {
+            return false;
+        }
+
+        int bearingValue = (color == Color.WHITE) ? 23 - fromIndex + 1 : fromIndex + 1;
+
+        // Zar değerlerinden biri hedef değerle eşleşiyor mu?
+        for (int die : moveValues) {
+            // Eğer taş doğrudan çıkarılabiliyorsa
+            if (die == bearingValue) {
+                Point fromPoint = board.getPoint(fromIndex);
+                if (!fromPoint.isEmpty() && fromPoint.getColor() == color) {
+                    fromPoint.removeChecker();
+                    board.bearOff(color);
+                    moveValues.remove((Integer) die);
+
+                    // Hareket bilgisini sunucuya gönder
+                    if (client != null) {
+                        client.sendMessage("BEAR_OFF:" + fromIndex);
+                    }
+
+                    // Hamle tamamlandıktan sonra sıra değiştirme
+                    if (moveValues.isEmpty()) {
+                        switchTurn();
+                    }
+                    return true;
+                }
+            }
+
+            // Eğer taş çıkışı yapamıyorsa ama daha küçük bir taş varsa
+            if (die > bearingValue) {
+                boolean hasCheckerBehind = false;
+                int start = (color == Color.WHITE) ? 18 : 0;
+                int end = (color == Color.WHITE) ? 24 : 6;
+
+                // Daha küçük pozisyonlarda aynı renkten taş var mı kontrol et
+                for (int i = start; i < end; i++) {
+                    if (i != fromIndex) {
+                        Point p = board.getPoint(i);
+                        if (!p.isEmpty() && p.getColor() == color) {
+                            hasCheckerBehind = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Eğer arkada başka taş yoksa çıkar
+                if (!hasCheckerBehind) {
+                    Point fromPoint = board.getPoint(fromIndex);
+                    if (!fromPoint.isEmpty() && fromPoint.getColor() == color) {
+                        fromPoint.removeChecker();
+                        board.bearOff(color);
+                        moveValues.remove((Integer) die);
+
+                        // Hareket bilgisini sunucuya gönder
+                        if (client != null) {
+                            client.sendMessage("BEAR_OFF:" + fromIndex);
+                        }
+
+                        // Hamle tamamlandıktan sonra sıra değiştirme
+                        if (moveValues.isEmpty()) {
+                            switchTurn();
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
 }

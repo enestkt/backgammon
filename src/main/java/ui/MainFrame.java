@@ -3,8 +3,8 @@ package ui;
 import logic.GameManager;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.io.IOException;
+import network.MultiClientClient;
 
 public class MainFrame extends JFrame {
 
@@ -34,21 +34,30 @@ public class MainFrame extends JFrame {
     private void startOfflineGame() {
         try {
             GameManager manager = new GameManager("Player 1", "Player 2");
-            new GameFrame(manager, false); // Offline olarak başlat
+            new GameFrame(manager, null);  // Offline modda null geçiyoruz
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Oyun başlatma hatası: " + e.getMessage());
         }
     }
 
     private void startOnlineGame() {
+        // Kullanıcıdan IP adresini al
         String ipAddress = JOptionPane.showInputDialog(null, "Sunucu IP adresini giriniz:", "127.0.0.1");
-        if (ipAddress != null && !ipAddress.isEmpty()) {
-            try {
-                GameManager manager = new GameManager("Player 1", "Player 2");
-                new GameFrame(manager, true); // Online olarak başlat
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(null, "Bağlantı hatası: " + e.getMessage());
-            }
+
+        // Eğer kullanıcı bir şey girmezse veya "Cancel" derse işlem iptal edilir
+        if (ipAddress == null || ipAddress.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Bağlantı iptal edildi.");
+            return;
+        }
+
+        try {
+            // Bağlanmaya çalış
+            GameManager manager = new GameManager("Player 1", "Player 2");
+            // Client oluştur ve sunucuya bağlan
+            MultiClientClient client = new MultiClientClient(ipAddress, 5000);
+            new GameFrame(manager, client);  // Client bilgisini geçir
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(null, "Bağlantı hatası: " + e.getMessage());
         }
     }
 

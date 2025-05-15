@@ -10,13 +10,14 @@ ui\GameFrame.class
 model\Move.class
 ui\GamePanel$1.class
 ui\MainFrame.class
-network\MultiClientServer$ClientHandler.class
+network\GameRoom.class
 ui\InfoPanel.class
 network\MultiClientServer.class
 ui\GamePanel$2.class
 network\MultiClientClient.class
 ui\AnimationPanel$1.class
 model\Player.class
+network\GameRoom$ClientHandler.class
 logic\DiceManager.class
 model\Color.class
 network\Server.class

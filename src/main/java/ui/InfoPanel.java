@@ -2,7 +2,7 @@ package ui;
 
 import logic.GameManager;
 import model.Color;
-import network.Client;
+import network.MultiClientClient;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
@@ -13,7 +13,7 @@ import java.util.List;
 public class InfoPanel extends JPanel {
 
     private GameManager gameManager;
-    private Client client;
+    private MultiClientClient client;
     private JTextArea chatArea;
     private JTextField chatInput;
     private JButton sendButton;
@@ -25,7 +25,7 @@ public class InfoPanel extends JPanel {
     private JButton rollButton;
     private JButton passButton;
 
-    public InfoPanel(GameManager gameManager, Client client) {
+    public InfoPanel(GameManager gameManager, MultiClientClient client) {
         this.gameManager = gameManager;
         this.client = client;
 
@@ -55,24 +55,28 @@ public class InfoPanel extends JPanel {
         infoPanel.add(barBlackLabel);
 
         // Buton Paneli
-        JPanel buttonPanel = new JPanel(new BorderLayout());
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 5, 5));
 
         // "Hamle Yapamıyorum" Butonu
         passButton = new JButton("Hamle Yapamıyorum");
         passButton.setFont(new Font("Arial", Font.PLAIN, 12));
         passButton.setPreferredSize(new Dimension(280, 30));
         passButton.addActionListener(e -> handlePassTurn());
-        buttonPanel.add(passButton, BorderLayout.NORTH);
+        buttonPanel.add(passButton);
 
         // "Zar At" Butonu
         rollButton = new JButton("🎲 Zar At");
         rollButton.setFont(new Font("Arial", Font.BOLD, 14));
         rollButton.setPreferredSize(new Dimension(280, 40));
         rollButton.addActionListener(e -> {
-            gameManager.rollDice();
-            updateInfo();
+            if (gameManager.isDiceRolled()) {
+                JOptionPane.showMessageDialog(this, "Zaten zar attınız, hamlenizi yapın!");
+            } else {
+                gameManager.rollDice();
+                updateInfo();
+            }
         });
-        buttonPanel.add(rollButton, BorderLayout.SOUTH);
+        buttonPanel.add(rollButton);
 
         infoPanel.add(buttonPanel);
 

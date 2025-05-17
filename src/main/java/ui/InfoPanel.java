@@ -61,7 +61,17 @@ public class InfoPanel extends JPanel {
         passButton = new JButton("Hamle Yapamıyorum");
         passButton.setFont(new Font("Arial", Font.PLAIN, 12));
         passButton.setPreferredSize(new Dimension(280, 30));
-        passButton.addActionListener(e -> handlePassTurn());
+        passButton.addActionListener(e -> {
+            if (gameManager.hasNoAvailableMove()) {
+                JOptionPane.showMessageDialog(this, "Hareket yapacak taşınız yok. Sıra diğer oyuncuya geçti.");
+                client.sendMessage("SWITCH_TURN:");  // Sıra değiştirme bilgisini gönder
+                gameManager.switchTurn();
+                updateInfo();
+            } else {
+                JOptionPane.showMessageDialog(this, "Hareket yapabileceğiniz taşlar var!");
+            }
+        });
+
         buttonPanel.add(passButton);
 
         // "Zar At" Butonu
@@ -73,9 +83,13 @@ public class InfoPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Zaten zar attınız, hamlenizi yapın!");
             } else {
                 gameManager.rollDice();
+                int die1 = gameManager.getDiceManager().getDie1();
+                int die2 = gameManager.getDiceManager().getDie2();
+                client.sendRoll(die1, die2);  // Zar atma bilgisini sunucuya gönder
                 updateInfo();
             }
         });
+
         buttonPanel.add(rollButton);
 
         infoPanel.add(buttonPanel);
@@ -92,7 +106,7 @@ public class InfoPanel extends JPanel {
         sendButton.addActionListener(e -> {
             String message = chatInput.getText();
             if (!message.isEmpty()) {
-                client.sendMessage(message);
+                client.sendChat("CHAT:" + message);
                 chatArea.append("Ben: " + message + "\n");
                 chatInput.setText("");
             }
@@ -112,8 +126,8 @@ public class InfoPanel extends JPanel {
     }
 
     public void updateInfo() {
-        playerLabel.setText("Sıra: " + gameManager.getCurrentPlayer().getName() + 
-            " (" + gameManager.getCurrentPlayer().getColor().toString().toUpperCase() + ")");
+        playerLabel.setText("Sıra: " + gameManager.getCurrentPlayer().getName()
+                + " (" + gameManager.getCurrentPlayer().getColor().toString().toUpperCase() + ")");
 
         int d1 = gameManager.getDiceManager().getDie1();
         int d2 = gameManager.getDiceManager().getDie2();

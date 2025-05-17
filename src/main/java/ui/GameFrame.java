@@ -23,104 +23,69 @@ public class GameFrame extends JFrame {
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        // Oyun panelini oluştur
         gamePanel = new GamePanel(gameManager);
-
-        // Online veya offline modda info panelini oluştur
-        if (client != null) {
-            infoPanel = new InfoPanel(gameManager, client);
-            JOptionPane.showMessageDialog(this, "Bağlantı başarılı: " + client.getServerIp());
-            startListeningForUpdates(); // Gelen mesajları dinlemeye başla
-        } else {
-            infoPanel = new InfoPanel(gameManager, null); // Offline modda client yok
-        }
+        infoPanel = new InfoPanel(gameManager, client);
 
         gamePanel.setInfoPanel(infoPanel);
         add(infoPanel, BorderLayout.WEST);
         add(gamePanel, BorderLayout.CENTER);
 
         setVisible(true);
+
+        startListeningForUpdates();
     }
 
-    // Gelen mesajları dinleyerek oyun güncellemelerini işleyen metot
     private void startListeningForUpdates() {
         new Thread(() -> {
-            try {
-                while (true) {
-                    String message = client.receiveMessage();
-                    if (message != null) {
-                        SwingUtilities.invokeLater(() -> processMessage(message));
-                    }
+            while (true) {
+                String message = client.receiveMessage();
+                if (message != null) {
+                    SwingUtilities.invokeLater(() -> processMessage(message));
                 }
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(this, "Bağlantı kesildi: " + e.getMessage(), "Hata", JOptionPane.ERROR_MESSAGE);
             }
         }).start();
     }
 
-    // Gelen mesajı işleme metodu
     private void processMessage(String message) {
-        if (message.startsWith("MOVE:")) {
-            // Hareket bilgisi
-            String[] parts = message.split(":");
-            int from = Integer.parseInt(parts[1]);
-            int to = Integer.parseInt(parts[2]);
-            gameManager.moveChecker(from, to);
-            infoPanel.updateInfo();
-            gamePanel.repaint();
-        } else if (message.startsWith("CHAT:")) {
-            // Sohbet mesajı
-            String chatMessage = message.substring(5);
-            infoPanel.updateChat(chatMessage);
-        } else if (message.startsWith("ROLL:")) {
-            // Zar bilgisi
-            gameManager.rollDice();
-            infoPanel.updateInfo();
-        } else if (message.startsWith("SWITCH_TURN:")) {
-            // Sıra değiştirme bilgisi
-            gameManager.switchTurn();
-            infoPanel.updateInfo();
-        } else if (message.startsWith("BEAR_OFF:")) {
-            // Taşı çıkarma (bearing off) bilgisi
-            int fromIndex = Integer.parseInt(message.split(":")[1]);
-            gameManager.tryBearOff(fromIndex);
-            infoPanel.updateInfo();
-            gamePanel.repaint();
+        try {
+            if (message.startsWith("MOVE:")) {
+                String[] parts = message.split(":");
+                int from = Integer.parseInt(parts[1]);
+                int to = Integer.parseInt(parts[2]);
+                gameManager.moveChecker(from, to);
+                infoPanel.updateInfo();
+                gamePanel.repaint();
+            } else if (message.startsWith("CHAT:")) {
+                infoPanel.updateChat(message.substring(5));
+            } else if (message.startsWith("ROLL:")) {
+                infoPanel.updateChat("Zar atıldı: " + message.substring(5));
+                gameManager.rollDice();
+                infoPanel.updateInfo();
+            } else if (message.startsWith("JOIN:")) {
+                infoPanel.updateChat("Oyuncu katıldı: " + message.substring(5));
+            } else if (message.startsWith("LEFT:")) {
+                infoPanel.updateChat("Oyuncu ayrıldı: " + message.substring(5));
+            } else {
+                infoPanel.updateChat("Sunucudan: " + message);
+            }
+        } catch (Exception e) {
+            System.err.println("Mesaj işleme hatası: " + e.getMessage());
         }
     }
 
-    // Hareket bilgisini sunucuya gönder
     public void sendMove(int from, int to) {
-        if (client != null) {
-            client.sendMessage("MOVE:" + from + ":" + to);
-        }
+        client.sendMessage("MOVE:" + from + ":" + to);
     }
 
-    // Sohbet mesajını sunucuya gönder
-    public void sendChatMessage(String chatMessage) {
-        if (client != null) {
-            client.sendMessage("CHAT:" + chatMessage);
-        }
-    }
-
-    // Zar atma bilgisini sunucuya gönder
     public void sendRollDice() {
-        if (client != null) {
-            client.sendMessage("ROLL:");
-        }
+        client.sendMessage("ROLL:");
     }
 
-    // Sıra değiştirme bilgisini sunucuya gönder
-    public void sendSwitchTurn() {
-        if (client != null) {
-            client.sendMessage("SWITCH_TURN:");
-        }
+    public void sendChatMessage(String chatMessage) {
+        client.sendMessage("CHAT:" + chatMessage);
     }
 
-    // Bearing off (taş çıkarma) bilgisini sunucuya gönder
-    public void sendBearOff(int fromIndex) {
-        if (client != null) {
-            client.sendMessage("BEAR_OFF:" + fromIndex);
-        }
+    public void sendLeave() {
+        client.sendMessage("LEFT:");
     }
 }

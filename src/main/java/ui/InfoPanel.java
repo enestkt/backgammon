@@ -85,7 +85,8 @@ public class InfoPanel extends JPanel {
                 gameManager.rollDice();
                 int die1 = gameManager.getDiceManager().getDie1();
                 int die2 = gameManager.getDiceManager().getDie2();
-                client.sendRoll(gameManager.getCurrentPlayer().getName(), die1, die2);// Zar atma bilgisini sunucuya gönder
+                // Zar atma bilgisini sunucuya gönder
+                client.sendRoll(die1, die2);
                 updateInfo();
             }
         });
@@ -107,7 +108,7 @@ public class InfoPanel extends JPanel {
             String message = chatInput.getText();
             String playerName = gameManager.getCurrentPlayer().getName();
             if (!message.isEmpty()) {
-                client.sendChat(playerName, message);
+                client.sendChat( message);
                 chatArea.append(playerName + ": " + message + "\n");
                 chatInput.setText("");
             }

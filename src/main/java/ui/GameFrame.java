@@ -38,9 +38,11 @@ public class GameFrame extends JFrame {
         new Thread(() -> {
             while (true) {
                 String message = client.receiveMessage();
-                if (message != null) {
-                    SwingUtilities.invokeLater(() -> processMessage(message));
+                if (message == null) {
+                    System.err.println("Bağlantı kesildi, dinleme sonlandırıldı.");
+                    break;  // Bağlantı koptuğunda döngüden çık
                 }
+                SwingUtilities.invokeLater(() -> processMessage(message));
             }
         }).start();
     }
@@ -70,16 +72,15 @@ public class GameFrame extends JFrame {
     }
 
     public void sendMove(int from, int to) {
-        client.sendMove(gameManager.getCurrentPlayer().getName(), from, to);
+        client.sendMove(from, to);
     }
 
     public void sendRollDice(int die1, int die2) {
-        client.sendRoll(gameManager.getCurrentPlayer().getName(), die1, die2);
+        client.sendRoll(die1, die2);
     }
 
     public void sendChatMessage(String chatMessage) {
-        String playerName = gameManager.getCurrentPlayer().getName(); // Oyuncu adını al
-        client.sendChat(playerName, chatMessage);  // Mesajı ad ile birlikte gönder
+        client.sendChat(chatMessage);  // Sadece mesajı gönder
     }
 
 }

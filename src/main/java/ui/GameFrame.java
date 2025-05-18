@@ -19,7 +19,7 @@ public class GameFrame extends JFrame {
 
         setTitle("Tavla - Oyun");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(1200, 650); 
+        setSize(1200, 650);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
@@ -31,7 +31,6 @@ public class GameFrame extends JFrame {
         add(gamePanel, BorderLayout.CENTER);
 
         setVisible(true);
-
         startListeningForUpdates();
     }
 
@@ -48,25 +47,22 @@ public class GameFrame extends JFrame {
 
     private void processMessage(String message) {
         try {
-            if (message.startsWith("MOVE:")) {
+            if (message.startsWith("ROLL:")) {
                 String[] parts = message.split(":");
-                int from = Integer.parseInt(parts[1]);
-                int to = Integer.parseInt(parts[2]);
+                int die1 = Integer.parseInt(parts[2]);
+                int die2 = Integer.parseInt(parts[3]);
+                gameManager.setDiceValues(die1, die2);
+                infoPanel.updateInfo();
+                gamePanel.repaint();
+            } else if (message.startsWith("MOVE:")) {
+                String[] parts = message.split(":");
+                int from = Integer.parseInt(parts[2]);
+                int to = Integer.parseInt(parts[3]);
                 gameManager.moveChecker(from, to);
                 infoPanel.updateInfo();
                 gamePanel.repaint();
             } else if (message.startsWith("CHAT:")) {
                 infoPanel.updateChat(message.substring(5));
-            } else if (message.startsWith("ROLL:")) {
-                infoPanel.updateChat("Zar atıldı: " + message.substring(5));
-                gameManager.rollDice();
-                infoPanel.updateInfo();
-            } else if (message.startsWith("JOIN:")) {
-                infoPanel.updateChat("Oyuncu katıldı: " + message.substring(5));
-            } else if (message.startsWith("LEFT:")) {
-                infoPanel.updateChat("Oyuncu ayrıldı: " + message.substring(5));
-            } else {
-                infoPanel.updateChat("Sunucudan: " + message);
             }
         } catch (Exception e) {
             System.err.println("Mesaj işleme hatası: " + e.getMessage());
@@ -74,18 +70,16 @@ public class GameFrame extends JFrame {
     }
 
     public void sendMove(int from, int to) {
-        client.sendMessage("MOVE:" + from + ":" + to);
+        client.sendMove(gameManager.getCurrentPlayer().getName(), from, to);
     }
 
-    public void sendRollDice() {
-        client.sendMessage("ROLL:");
+    public void sendRollDice(int die1, int die2) {
+        client.sendRoll(gameManager.getCurrentPlayer().getName(), die1, die2);
     }
 
     public void sendChatMessage(String chatMessage) {
-        client.sendMessage("CHAT:" + chatMessage);
+        String playerName = gameManager.getCurrentPlayer().getName(); // Oyuncu adını al
+        client.sendChat(playerName, chatMessage);  // Mesajı ad ile birlikte gönder
     }
 
-    public void sendLeave() {
-        client.sendMessage("LEFT:");
-    }
 }

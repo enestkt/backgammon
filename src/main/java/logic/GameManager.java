@@ -61,6 +61,11 @@ public class GameManager {
         return new ArrayList<>(moveValues);
     }
 
+    public void setDiceValues(int die1, int die2) {
+        diceManager.setDie1(die1);
+        diceManager.setDie2(die2);
+    }
+
     public void rollDice() {
         if (diceRolled) {
             JOptionPane.showMessageDialog(null, "Hamlenizi tamamlamadan tekrar zar atamazsınız!");

@@ -5,6 +5,7 @@ import java.net.*;
 import java.util.*;
 
 public class GameRoom {
+
     private final List<ClientHandler> players = Collections.synchronizedList(new ArrayList<>(2));
     private final int roomID;
 
@@ -13,12 +14,13 @@ public class GameRoom {
     }
 
     // Odaya oyuncu ekleme
+    
     public synchronized void addPlayer(Socket clientSocket) {
         String playerName = "Player " + (players.size() + 1);
         ClientHandler clientHandler = new ClientHandler(clientSocket, playerName);
         players.add(clientHandler);
         new Thread(clientHandler).start();
-        broadcast("JOIN:" + playerName);  // Oyuncunun katıldığını yayınla
+        broadcast("JOIN:" + playerName);
         System.out.println("Oda ID: " + roomID + " - Oyuncu eklendi: " + playerName);
     }
 
@@ -55,6 +57,7 @@ public class GameRoom {
 
     // İç sınıf: ClientHandler
     class ClientHandler implements Runnable {
+
         private final Socket socket;
         private PrintWriter out;
         private final String playerName;
@@ -73,23 +76,32 @@ public class GameRoom {
                 String message;
                 while ((message = in.readLine()) != null) {
                     if (message.startsWith("MOVE:")) {
-                        // Hamle mesajı: MOVE:Player1:from:to
+                        // Hamle mesajı: MOVE:from:to
                         String[] parts = message.split(":");
-                        String moveDetails = parts[1] + ":" + parts[2] + ":" + parts[3];
-                        broadcast("MOVE:" + playerName + ":" + moveDetails);
-                        System.out.println("Hamle: " + moveDetails);
+                        if (parts.length == 3) {
+                            int from = Integer.parseInt(parts[1]);
+                            int to = Integer.parseInt(parts[2]);
+                            broadcast("MOVE:" + playerName + ":" + from + ":" + to);
+                            System.out.println("Hamle: " + playerName + " - " + from + " -> " + to);
+                        } else {
+                            System.err.println("Geçersiz hamle formatı: " + message);
+                        }
                     } else if (message.startsWith("CHAT:")) {
-                        // Sohbet mesajı: CHAT:Player1:message
+                        // Sohbet mesajı: CHAT:message
                         String chatMessage = message.substring(5);
                         broadcast("CHAT:" + playerName + ": " + chatMessage);
                         System.out.println("Sohbet: " + chatMessage);
                     } else if (message.startsWith("ROLL:")) {
-                        // Zar atma mesajı: ROLL:Player1:die1:die2
+                        // Zar atma mesajı: ROLL:die1:die2
                         String[] parts = message.split(":");
-                        int die1 = Integer.parseInt(parts[1]);
-                        int die2 = Integer.parseInt(parts[2]);
-                        broadcast("ROLL:" + playerName + ":" + die1 + ":" + die2);
-                        System.out.println("Zar atıldı: " + die1 + ", " + die2);
+                        if (parts.length == 3) {
+                            int die1 = Integer.parseInt(parts[1]);
+                            int die2 = Integer.parseInt(parts[2]);
+                            broadcast("ROLL:" + playerName + ":" + die1 + ":" + die2);
+                            System.out.println("Zar atıldı: " + playerName + " - " + die1 + ", " + die2);
+                        } else {
+                            System.err.println("Geçersiz zar formatı: " + message);
+                        }
                     } else if (message.startsWith("LEFT:")) {
                         // Oyuncu ayrılma mesajı
                         broadcast("LEFT:" + playerName);

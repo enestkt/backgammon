@@ -105,10 +105,10 @@ public class InfoPanel extends JPanel {
 
         sendButton.addActionListener(e -> {
             String message = chatInput.getText();
+            String playerName = gameManager.getCurrentPlayer().getName();
             if (!message.isEmpty()) {
-                String playerName = gameManager.getCurrentPlayer().getName();//Oyuncu adını GameManager'dan alıyoruz
-                client.sendChat(playerName, message); // Doğru formatta gönder
-                chatArea.append("Ben: " + message + "\n");
+                client.sendChat(playerName, message);
+                chatArea.append(playerName + ": " + message + "\n");
                 chatInput.setText("");
             }
         });

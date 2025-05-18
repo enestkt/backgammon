@@ -10,12 +10,14 @@ public class MultiClientClient {
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
+    private String playerName;
 
     public MultiClientClient(String serverIp, int serverPort) {
         this.serverIp = serverIp;
         this.serverPort = serverPort;
         try {
             socket = new Socket(serverIp, serverPort);
+            playerName = "Player-" + socket.getLocalPort();
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             System.out.println("Bağlandı: " + serverIp + ":" + serverPort);
@@ -25,8 +27,8 @@ public class MultiClientClient {
             close();
         }
     }
-
     // Mesaj alma metodu
+
     public String receiveMessage() {
         try {
             return in.readLine();
@@ -36,13 +38,40 @@ public class MultiClientClient {
         }
     }
 
-    // Gelen mesajları dinleme
+    private void processMessage(String message) {
+        try {
+            if (message.startsWith("START:")) {
+                String[] parts = message.split(":");
+                String playerName = parts[1];
+                String color = parts[2];
+                System.out.println("🎮 Oyun Başladı - " + playerName + " olarak oynuyorsunuz (" + color + ")");
+            } else if (message.startsWith("TURN:")) {
+                String playerName = message.substring(5);
+                System.out.println("🔄 Sıra: " + playerName);
+            } else if (message.startsWith("MOVE:")) {
+                String[] parts = message.split(":");
+                String playerName = parts[1];
+                int from = Integer.parseInt(parts[2]);
+                int to = Integer.parseInt(parts[3]);
+                System.out.println("🔄 Hamle (" + playerName + "): " + from + " -> " + to);
+            } else if (message.startsWith("ROLL:")) {
+                String[] parts = message.split(":");
+                String playerName = parts[1];
+                int die1 = Integer.parseInt(parts[2]);
+                int die2 = Integer.parseInt(parts[3]);
+                System.out.println("🎲 Zar atıldı (" + playerName + "): " + die1 + ", " + die2);
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Mesaj işleme hatası: " + e.getMessage());
+        }
+    }
+
     private void startListening() {
         new Thread(() -> {
             try {
                 String message;
                 while ((message = in.readLine()) != null) {
-                    processMessage(message);
+                    System.out.println("Gelen mesaj: " + message);
                 }
             } catch (IOException e) {
                 System.err.println("Bağlantı kesildi: " + e.getMessage());
@@ -52,52 +81,21 @@ public class MultiClientClient {
         }).start();
     }
 
-    private void processMessage(String message) {
-        try {
-            if (message.startsWith("JOIN:")) {
-                String playerName = message.substring(5);
-                System.out.println("🔗 Oyuncu katıldı: " + playerName);
-            } else if (message.startsWith("CHAT:")) {
-                String[] parts = message.split(":");
-                if (parts.length >= 3) {
-                    String playerName = parts[1];
-                    String chatMessage = parts[2];
-                    System.out.println("💬 " + playerName + ": " + chatMessage);
-                } else {
-                    System.err.println("❌ Geçersiz sohbet formatı: " + message);
-                }
-            } else if (message.startsWith("MOVE:")) {
-                String[] parts = message.split(":");
-                if (parts.length == 4) {
-                    String playerName = parts[1];
-                    int from = Integer.parseInt(parts[2]);
-                    int to = Integer.parseInt(parts[3]);
-                    System.out.println("🔄 Hamle (" + playerName + "): " + from + " -> " + to);
-                } else {
-                    System.err.println("❌ Geçersiz hamle formatı: " + message);
-                }
-            } else if (message.startsWith("ROLL:")) {
-                String[] parts = message.split(":");
-                if (parts.length == 4) {
-                    String playerName = parts[1];
-                    int die1 = Integer.parseInt(parts[2]);
-                    int die2 = Integer.parseInt(parts[3]);
-                    System.out.println("🎲 Zar atıldı (" + playerName + "): " + die1 + ", " + die2);
-                } else {
-                    System.err.println("❌ Geçersiz zar formatı: " + message);
-                }
-            } else if (message.startsWith("LEFT:")) {
-                String playerName = message.substring(5);
-                System.out.println("🚪 Oyuncu ayrıldı: " + playerName);
-            } else {
-                System.out.println("🌐 Sunucudan gelen: " + message);
-            }
-        } catch (Exception e) {
-            System.err.println("⚠️ Mesaj işleme hatası: " + e.getMessage());
-        }
+    // Sohbet mesajı gönderme
+    public void sendChat(String playerName, String chatMessage) {
+        sendMessage("CHAT:" + playerName + ":" + chatMessage);
     }
 
-    // Mesaj gönderme
+// Zar atma mesajı gönderme
+    public void sendRoll(String playerName, int die1, int die2) {
+        sendMessage("ROLL:" + playerName + ":" + die1 + ":" + die2);
+    }
+
+// Hareket mesajı gönderme
+    public void sendMove(String playerName, int from, int to) {
+        sendMessage("MOVE:" + playerName + ":" + from + ":" + to);
+    }
+
     public void sendMessage(String message) {
         if (out != null) {
             out.println(message);
@@ -107,46 +105,14 @@ public class MultiClientClient {
         }
     }
 
-    // Zar atma mesajı gönderme
-    // Zar atma mesajı gönderme
-    public void sendRoll(String playerName, int die1, int die2) {
-        sendMessage("ROLL:" + playerName + ":" + die1 + ":" + die2);
-    }
-
-    public void sendMove(String playerName, int from, int to) {
-        sendMessage("MOVE:" + playerName + ":" + from + ":" + to);
-    }
-
-    // Sohbet mesajı gönderme
-    public void sendChat(String playerName, String chatMessage) {
-        sendMessage("CHAT:" + playerName + ": " + chatMessage);
-    }
-
-    // Oyuncu ayrılma mesajı gönderme
-    public void sendLeave(String playerName) {
-        sendMessage("LEFT:" + playerName);
-    }
-
-    // Bağlantıyı kapatma
-    public void close() {
+    private void close() {
         try {
             if (socket != null && !socket.isClosed()) {
-                sendLeave(socket.getInetAddress().toString());
                 socket.close();
                 System.out.println("Bağlantı kapatıldı.");
             }
         } catch (IOException e) {
             System.err.println("Bağlantı kapatma hatası: " + e.getMessage());
         }
-    }
-
-    // Sunucu IP'sini alma
-    public String getServerIp() {
-        return serverIp;
-    }
-
-    // Sunucu portunu alma
-    public int getServerPort() {
-        return serverPort;
     }
 }

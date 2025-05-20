@@ -56,6 +56,7 @@ public class MainFrame extends JFrame {
             // Client oluştur ve sunucuya bağlan
             MultiClientClient client = new MultiClientClient(ipAddress, 5000);
             new GameFrame(manager, client);  // Client bilgisini geçir
+            setVisible(false);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Bağlantı hatası: " + e.getMessage());
         }

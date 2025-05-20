@@ -119,6 +119,39 @@ public class GameManager {
         }
         return false;
     }
+    // UI'den değil, sunucudan gelen MOVE mesajlarını işlemek için kullanılır.
+// Sıra kontrolü yapmaz, doğrudan tahtayı günceller.
+
+    public void forceMoveChecker(int from, int to) {
+        Point fromPoint = board.getPoint(from);
+        Point toPoint = board.getPoint(to);
+
+        if (fromPoint.isEmpty()) {
+            return;
+        }
+
+        Color movingColor = fromPoint.getColor();
+
+        // Rakip taşı kır
+        if (!toPoint.isEmpty() && toPoint.getColor() != movingColor && toPoint.getCount() == 1) {
+            board.addToBar(toPoint.getColor());
+            toPoint.removeChecker();
+        }
+
+        // Rakip blok varsa iptal
+        if (!toPoint.isEmpty() && toPoint.getColor() != movingColor && toPoint.getCount() > 1) {
+            return;
+        }
+
+        // Hamleyi uygula
+        try {
+            toPoint.addChecker(movingColor);
+            fromPoint.removeChecker();
+            switchTurn(); // sırayı değiştir
+        } catch (IllegalStateException e) {
+            System.err.println("Sunucudan gelen hamle uygulanamadı: " + e.getMessage());
+        }
+    }
 
     public boolean moveChecker(int from, int to) {
         Point fromPoint = board.getPoint(from);

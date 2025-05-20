@@ -82,12 +82,17 @@ public class InfoPanel extends JPanel {
             if (gameManager.isDiceRolled()) {
                 JOptionPane.showMessageDialog(this, "Zaten zar attınız, hamlenizi yapın!");
             } else {
-                gameManager.rollDice();
+                if(gameManager.getRemainingMoves().size() == 0){
+                    gameManager.rollDice();
                 int die1 = gameManager.getDiceManager().getDie1();
                 int die2 = gameManager.getDiceManager().getDie2();
                 // Zar atma bilgisini sunucuya gönder
                 client.sendRoll(die1, die2);
                 updateInfo();
+                }else{
+                    System.out.println("karşı rakip tüm hamlesini daha yapmadı");
+                }
+                
             }
         });
 

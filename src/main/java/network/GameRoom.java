@@ -41,7 +41,13 @@ public class GameRoom {
 
     // Sıra değiştirme
     public synchronized void switchTurn() {
-        currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
+        if (currentPlayerIndex == 1){
+            currentPlayerIndex= 0;
+                    
+        }else{
+            currentPlayerIndex = 1;
+        }
+
         String nextPlayer = players.get(currentPlayerIndex).getPlayerName();
         broadcast("TURN:" + nextPlayer);
         System.out.println("Sıra değişti: " + nextPlayer);

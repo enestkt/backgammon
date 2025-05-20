@@ -4,7 +4,6 @@ C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\ui\GamePanel
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\ui\AnimationPanel.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\logic\MoveValidator.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\model\Board.java
-C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\network\Client.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\ui\GameFrame.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\ui\MainFrame.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\model\Move.java
@@ -13,7 +12,7 @@ C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\model\Die.ja
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\network\GameRoom.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\logic\GameManager.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\model\Player.java
-C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\network\Server.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\model\Point.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\network\MultiClientServer.java
+C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\network\ClientHandler.java
 C:\Users\Eness\Documents\NetBeansProjects\BACKGAMMONN\src\main\java\logic\DiceManager.java

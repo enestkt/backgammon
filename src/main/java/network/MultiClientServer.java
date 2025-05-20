@@ -1,5 +1,4 @@
-// MultiClientServer.java
-
+// MultiClientServer.java - Geliştirilmiş Sürüm
 package network;
 
 import java.io.BufferedReader;
@@ -49,8 +48,11 @@ public class MultiClientServer {
 
                 System.out.println("Oyun odası oluşturuldu: " + room.getRoomID());
 
-                broadcastMessage(room, "START:Player 1:WHITE");
-                broadcastMessage(room, "START:Player 2:BLACK");
+                // Her oyuncuya özel START mesajı gönder
+                sendMessage(player1, "START:Player 1:WHITE");
+                sendMessage(player2, "START:Player 2:BLACK");
+
+                // Sıra bilgisini herkese yayınla
                 broadcastMessage(room, "TURN:Player 1:WHITE");
 
                 new Thread(() -> handleClient(player1, room)).start();
@@ -59,11 +61,19 @@ public class MultiClientServer {
         }
     }
 
+    private static void sendMessage(Socket playerSocket, String message) {
+        try {
+            PrintWriter out = new PrintWriter(playerSocket.getOutputStream(), true);
+            out.println(message);
+            System.out.println("Mesaj gönderildi (özel): " + message);
+        } catch (IOException e) {
+            System.err.println("Mesaj gönderme hatası (özel): " + e.getMessage());
+        }
+    }
+
     private static void handleClient(Socket clientSocket, GameRoom assignedRoom) {
         try (
-            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)
-        ) {
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())); PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
             String message;
             while ((message = in.readLine()) != null) {
                 System.out.println("Sunucuya gelen mesaj: " + message);
@@ -82,7 +92,9 @@ public class MultiClientServer {
         } catch (IOException e) {
             System.err.println("İstemci bağlantı hatası: " + e.getMessage());
         } finally {
+            System.out.println("Oyuncu bağlantısı kesildi.");
             assignedRoom.removePlayer(new ClientHandler(clientSocket, "", "", assignedRoom));
+            broadcastMessage(assignedRoom, "LEFT:" + clientSocket.getInetAddress());
         }
     }
 

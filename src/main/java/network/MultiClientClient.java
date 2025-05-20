@@ -1,4 +1,5 @@
-// MultiClientClient.java - Düzeltilmiş Sürüm
+// MultiClientClient.java - Mesaj Güncelleme ve Sıra Kontrolü
+
 package network;
 
 import java.io.*;
@@ -33,6 +34,11 @@ public class MultiClientClient {
         try {
             if (message.startsWith("START:")) {
                 String[] parts = message.split(":");
+                
+                for(String s: parts){
+                    System.out.println(s+ "-");
+                }
+                
                 playerName = parts[1];
                 String color = parts[2];
                 System.out.println("🎮 Oyun Başladı - " + playerName + " olarak oynuyorsunuz (" + color + ")");
@@ -40,7 +46,7 @@ public class MultiClientClient {
                 currentPlayer = message.substring(5);
                 System.out.println("🔄 Sıra: " + currentPlayer);
                 if (currentPlayer.equals(playerName)) {
-                    System.out.println("🎯 Sıra sizde! Zar atabilirsiniz.");
+                    System.out.println("🎯 Sıra sizde! Hamle yapabilirsiniz.");
                 }
             } else if (message.startsWith("MOVE:")) {
                 String[] parts = message.split(":");
@@ -66,33 +72,27 @@ public class MultiClientClient {
         new Thread(() -> {
             try {
                 String message;
-                while (true) {
-                    message = in.readLine();
-                    if (message == null) {
-                        System.err.println("Bağlantı kesildi: Sunucu bağlantısı kapatıldı.");
-                        break;  // Bağlantı kesildiğinde döngüden çık
-                    }
+                while ((message = in.readLine()) != null) {
                     System.out.println("Gelen mesaj: " + message);
                     processMessage(message);
                 }
             } catch (IOException e) {
-                System.err.println("Bağlantı hatası: " + e.getMessage());
+                System.err.println("Bağlantı kesildi: " + e.getMessage());
             } finally {
-                System.out.println("Dinleme sonlandırıldı.");
                 close();
             }
         }).start();
     }
-
     public String receiveMessage() {
-        try {
-            return in.readLine();
-        } catch (IOException e) {
-            System.err.println("Mesaj alma hatası: " + e.getMessage());
-            close();
-            return null;
-        }
+    try {
+        return in.readLine();
+    } catch (IOException e) {
+        System.err.println("Mesaj alma hatası: " + e.getMessage());
+        close();
+        return null;
     }
+}
+
 
     public void sendChat(String chatMessage) {
         sendMessage("CHAT:" + playerName + ":" + chatMessage);

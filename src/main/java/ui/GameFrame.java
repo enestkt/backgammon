@@ -60,7 +60,7 @@ public class GameFrame extends JFrame {
                 String[] parts = message.split(":");
                 int from = Integer.parseInt(parts[2]);
                 int to = Integer.parseInt(parts[3]);
-                gameManager.moveChecker(from, to);
+                gameManager.forceMoveChecker(from, to); // sunucudan gelen hamle
                 infoPanel.updateInfo();
                 gamePanel.repaint();
             } else if (message.startsWith("CHAT:")) {

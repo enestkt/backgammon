@@ -5,9 +5,7 @@ import model.Color;
 import network.MultiClientClient;
 
 import javax.swing.*;
-import javax.swing.border.LineBorder;
 import java.awt.*;
-import java.io.IOException;
 import java.util.List;
 
 public class InfoPanel extends JPanel {
@@ -24,6 +22,13 @@ public class InfoPanel extends JPanel {
     private JLabel barBlackLabel;
     private JButton rollButton;
     private JButton passButton;
+    private boolean isMyTurn = false;
+
+    public void setTurn(boolean turn) {
+        this.isMyTurn = turn;
+        rollButton.setEnabled(isMyTurn);
+        passButton.setEnabled(isMyTurn);
+    }
 
     public InfoPanel(GameManager gameManager, MultiClientClient client) {
         this.gameManager = gameManager;
@@ -40,11 +45,12 @@ public class InfoPanel extends JPanel {
         barWhiteLabel = new JLabel("Bar (WHITE): 0");
         barBlackLabel = new JLabel("Bar (BLACK): 0");
 
-        playerLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        diceLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        remainingLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        barWhiteLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        barBlackLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        Font infoFont = new Font("Arial", Font.BOLD, 16);
+        playerLabel.setFont(infoFont);
+        diceLabel.setFont(infoFont);
+        remainingLabel.setFont(infoFont);
+        barWhiteLabel.setFont(infoFont);
+        barBlackLabel.setFont(infoFont);
 
         JPanel infoPanel = new JPanel();
         infoPanel.setLayout(new GridLayout(6, 1, 5, 5));
@@ -61,12 +67,16 @@ public class InfoPanel extends JPanel {
         passButton = new JButton("Hamle Yapamıyorum");
         passButton.setFont(new Font("Arial", Font.PLAIN, 12));
         passButton.setPreferredSize(new Dimension(280, 30));
+        passButton.setEnabled(false); // Başlangıçta pasif
         passButton.addActionListener(e -> {
+            if (!isMyTurn) {
+                return;
+            }
             if (gameManager.hasNoAvailableMove()) {
                 JOptionPane.showMessageDialog(this, "Hareket yapacak taşınız yok. Sıra diğer oyuncuya geçti.");
-                client.sendMessage("SWITCH_TURN:");  // Sıra değiştirme bilgisini gönder
-                gameManager.switchTurn();
-                updateInfo();
+                // YALNIZCA SUNUCUYA MESAJ GÖNDER
+                client.sendMessage("SWITCH_TURN:");
+                // Local olarak gameManager.switchTurn(); veya updateInfo() YOK!
             } else {
                 JOptionPane.showMessageDialog(this, "Hareket yapabileceğiniz taşlar var!");
             }
@@ -78,26 +88,28 @@ public class InfoPanel extends JPanel {
         rollButton = new JButton("🎲 Zar At");
         rollButton.setFont(new Font("Arial", Font.BOLD, 14));
         rollButton.setPreferredSize(new Dimension(280, 40));
+        rollButton.setEnabled(false); // Başlangıçta pasif
         rollButton.addActionListener(e -> {
+            if (!isMyTurn) {
+                return;
+            }
             if (gameManager.isDiceRolled()) {
                 JOptionPane.showMessageDialog(this, "Zaten zar attınız, hamlenizi yapın!");
             } else {
-                if(gameManager.getRemainingMoves().size() == 0){
-                    gameManager.rollDice();
-                int die1 = gameManager.getDiceManager().getDie1();
-                int die2 = gameManager.getDiceManager().getDie2();
-                // Zar atma bilgisini sunucuya gönder
-                client.sendRoll(die1, die2);
-                updateInfo();
-                }else{
+                if (gameManager.getRemainingMoves().size() == 0) {
+                    // *** LOCAL rollDice() YOK! ***
+                    // Zar değerini burada oluşturabilirsin ya da server tarafında random ata
+                    int die1 = (int) (Math.random() * 6) + 1;
+                    int die2 = (int) (Math.random() * 6) + 1;
+                    client.sendRoll(die1, die2);
+                    // Local olarak updateInfo() veya başka bir şey yok!
+                } else {
                     System.out.println("karşı rakip tüm hamlesini daha yapmadı");
                 }
-                
             }
         });
 
         buttonPanel.add(rollButton);
-
         infoPanel.add(buttonPanel);
 
         // Sohbet Alanı
@@ -108,12 +120,11 @@ public class InfoPanel extends JPanel {
 
         chatInput = new JTextField();
         sendButton = new JButton("Gönder");
-
         sendButton.addActionListener(e -> {
             String message = chatInput.getText();
             String playerName = gameManager.getCurrentPlayer().getName();
             if (!message.isEmpty()) {
-                client.sendChat( message);
+                client.sendChat(message);
                 chatArea.append(playerName + ": " + message + "\n");
                 chatInput.setText("");
             }
@@ -160,4 +171,5 @@ public class InfoPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Hareket yapabileceğiniz taşlar var!");
         }
     }
+
 }

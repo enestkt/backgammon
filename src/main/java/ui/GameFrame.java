@@ -12,6 +12,8 @@ public class GameFrame extends JFrame {
     private final GamePanel gamePanel;
     private final InfoPanel infoPanel;
     private final MultiClientClient client;
+    private String myPlayerName;
+    private boolean isMyTurn = false;
 
     public GameFrame(GameManager gameManager, MultiClientClient client) throws IOException {
         this.gameManager = gameManager;
@@ -27,6 +29,9 @@ public class GameFrame extends JFrame {
         infoPanel = new InfoPanel(gameManager, client);
 
         gamePanel.setInfoPanel(infoPanel);
+        // Client referansını da gamePanel’e geçir:
+        gamePanel.setClient(client);
+
         add(infoPanel, BorderLayout.WEST);
         add(gamePanel, BorderLayout.CENTER);
 
@@ -42,6 +47,9 @@ public class GameFrame extends JFrame {
                     System.err.println("Bağlantı kesildi, dinleme sonlandırıldı.");
                     break;  // Bağlantı koptuğunda döngüden çık
                 }
+                // Önce client’ın kendi state’ini güncelle
+                client.processMessage(message);
+                // Sonra GUI’yi güncelle
                 SwingUtilities.invokeLater(() -> processMessage(message));
             }
         }).start();
@@ -49,7 +57,21 @@ public class GameFrame extends JFrame {
 
     private void processMessage(String message) {
         try {
-            if (message.startsWith("ROLL:")) {
+            if (message.startsWith("START:")) {
+                String[] parts = message.split(":");
+                myPlayerName = parts[1];
+                 System.out.println("myPlayerName SET: " + myPlayerName);// "Player 1" veya "Player 2"
+                // Dilersen oyuncu rengi vs. burada alabilirsin: String myColor = parts[2];
+                infoPanel.updateInfo();
+            } else if (message.startsWith("TURN:")) {
+                String turnPlayer = message.substring(5).split(":")[0].trim(); // SADECE isim!
+                isMyTurn = turnPlayer.equals(myPlayerName);
+                 System.out.println("myPlayerName: " + myPlayerName + " turnPlayer: " + turnPlayer + " isMyTurn: " + isMyTurn);
+                infoPanel.setTurn(isMyTurn);
+                gamePanel.setTurn(isMyTurn);
+                infoPanel.updateInfo();
+
+            } else if (message.startsWith("ROLL:")) {
                 String[] parts = message.split(":");
                 int die1 = Integer.parseInt(parts[2]);
                 int die2 = Integer.parseInt(parts[3]);
@@ -60,17 +82,20 @@ public class GameFrame extends JFrame {
                 String[] parts = message.split(":");
                 int from = Integer.parseInt(parts[2]);
                 int to = Integer.parseInt(parts[3]);
-                gameManager.forceMoveChecker(from, to); // sunucudan gelen hamle
+                gameManager.forceMoveChecker(from, to);
                 infoPanel.updateInfo();
                 gamePanel.repaint();
             } else if (message.startsWith("CHAT:")) {
                 infoPanel.updateChat(message.substring(5));
+            } else if (message.startsWith("ERROR:")) {
+                JOptionPane.showMessageDialog(this, message.substring(6), "Hata", JOptionPane.ERROR_MESSAGE);
             }
         } catch (Exception e) {
             System.err.println("Mesaj işleme hatası: " + e.getMessage());
         }
     }
 
+    // Aşağıdaki methodlar GUI kodunu sadeleştiriyor:
     public void sendMove(int from, int to) {
         client.sendMove(from, to);
     }
@@ -80,7 +105,6 @@ public class GameFrame extends JFrame {
     }
 
     public void sendChatMessage(String chatMessage) {
-        client.sendChat(chatMessage);  // Sadece mesajı gönder
+        client.sendChat(chatMessage);
     }
-
 }

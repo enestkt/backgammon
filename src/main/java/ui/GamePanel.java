@@ -4,14 +4,13 @@ import logic.GameManager;
 import model.Color;
 import model.Player;
 import model.Point;
+import network.MultiClientClient; // Dikkat: Bunu eklemeyi unutma!
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
-import ui.InfoPanel;
-import ui.MainFrame;
 
 public class GamePanel extends JPanel {
 
@@ -19,14 +18,21 @@ public class GamePanel extends JPanel {
     private int selectedPointIndex = -1;
     private boolean barCheckerSelected = false;
     private InfoPanel infoPanel;
+    private boolean isMyTurn = false;
+    private MultiClientClient client; // <-- Bunu ekliyoruz
 
     public GamePanel(GameManager gameManager) {
         this.gameManager = gameManager;
-        setBackground(new java.awt.Color(200, 200, 200));  // Nötr arka plan rengi,
+        setBackground(new java.awt.Color(200, 200, 200));
 
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
+                if (!isMyTurn) {
+                    return;
+                }
+                if (client == null) return; // Online değilse güvenlik
+
                 int clickedIndex = getClickedPointIndex(e.getX(), e.getY());
 
                 if (gameManager.hasBarChecker(gameManager.getCurrentPlayer().getColor())) {
@@ -35,10 +41,12 @@ public class GamePanel extends JPanel {
                         repaint();
                         return;
                     }
-
-                    if (barCheckerSelected && clickedIndex != -1 && gameManager.moveFromBar(clickedIndex)) {
+                    // *** LOCAL OLARAK moveFromBar YAPMA ***
+                    if (barCheckerSelected && clickedIndex != -1) {
+                        // Sadece servera mesaj gönder
+                        client.sendMove(0, clickedIndex); // Bar'dan taş çıkınca from=0
                         barCheckerSelected = false;
-                        repaint();
+                        // Local olarak hareket etme!
                     }
                     return;
                 }
@@ -53,18 +61,20 @@ public class GamePanel extends JPanel {
                         selectedPointIndex = clickedIndex;
                     }
                 } else {
-                    boolean moved = gameManager.moveChecker(selectedPointIndex, clickedIndex);
+                    // *** ARTIK LOCAL HAMLE YOK ***
+                    // Sadece servera hamle mesajı gönder
+                    client.sendMove(selectedPointIndex, clickedIndex);
                     selectedPointIndex = -1;
-
-                    if (moved) {
-                        infoPanel.updateInfo();
-                        repaint();
-                        checkGameOver();
-                    }
+                    // Local olarak gameManager.moveChecker() veya updateInfo()/repaint() yok!
                 }
-                repaint();
+                repaint(); // Sadece görsel güncelleme (seçili vurgusu için)
             }
         });
+    }
+
+    // GameFrame’den çağrılırken client referansını da verelim
+    public void setClient(MultiClientClient client) {
+        this.client = client;
     }
 
     public void setInfoPanel(InfoPanel infoPanel) {
@@ -74,6 +84,14 @@ public class GamePanel extends JPanel {
     public void updateDiceValues() {
         repaint();
     }
+
+    public void setTurn(boolean isMyTurn) {
+        this.isMyTurn = isMyTurn;
+        setCursor(isMyTurn ? Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+                : Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+    }
+
+    // Aşağısı çizim kodları aynı
 
     private void checkGameOver() {
         Player current = gameManager.getCurrentPlayer();

@@ -77,6 +77,7 @@ public class MultiClientServer {
             String message;
             while ((message = in.readLine()) != null) {
                 System.out.println("Sunucuya gelen mesaj: " + message);
+
                 if (message.startsWith("MOVE:") || message.startsWith("ROLL:")) {
                     String currentPlayer = assignedRoom.getCurrentPlayerName();
                     String playerName = message.split(":")[1];
@@ -86,8 +87,14 @@ public class MultiClientServer {
                         continue;
                     }
                     assignedRoom.switchTurn();
+                    broadcastMessage(assignedRoom, message); // Bu sıradan hemen sonra!
+                } else if (message.startsWith("SWITCH_TURN:")) {
+                    // Sunucuya zorunlu pas geldi
+                    assignedRoom.switchTurn();
+                    // Burada ekstra bir mesaj yollamaya gerek yok, switchTurn zaten TURN mesajı atıyor
+                } else {
+                    broadcastMessage(assignedRoom, message);
                 }
-                broadcastMessage(assignedRoom, message);
             }
         } catch (IOException e) {
             System.err.println("İstemci bağlantı hatası: " + e.getMessage());

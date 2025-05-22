@@ -1,10 +1,16 @@
 package model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Player {
     private String name;
     private Color color;
     private int borneOffCount;
     private int barCount;
+
+    // === EKLENEN KISIM ===
+    private List<Integer> moveValues = new ArrayList<>();
 
     public Player(String name, Color color) {
         this.name = name;
@@ -43,5 +49,15 @@ public class Player {
 
     public void decrementBar() {
         if (barCount > 0) barCount--;
+    }
+
+    // === EKLENEN KISIM ===
+    public List<Integer> getMoveValues() {
+        return moveValues;
+    }
+
+    public void setMoveValues(List<Integer> values) {
+        moveValues.clear();
+        moveValues.addAll(values);
     }
 }

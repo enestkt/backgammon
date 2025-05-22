@@ -11,6 +11,7 @@ public class Point implements Serializable {
     private int count;
 
     public Point(int index) {
+        
         this.index = index;
         this.color = null;
         this.count = 0;
@@ -19,6 +20,7 @@ public class Point implements Serializable {
     public int getIndex() {
         return index;
     }
+    
 
     public Color getColor() {
         return color;
@@ -68,4 +70,26 @@ public class Point implements Serializable {
             throw new IllegalStateException("No checkers to remove.");
         }
     }
+    // Kaç taş ve rengine göre hızlıca ayarla (pozitif: WHITE, negatif: BLACK, 0: boş)
+public void setCountAndColor(int value) {
+    if (value == 0) {
+        this.setCount(0);
+        this.setColor(null); // veya boş renk
+    } else if (value > 0) {
+        this.setCount(value);
+        this.setColor(Color.WHITE);
+    } else {
+        this.setCount(-value);
+        this.setColor(Color.BLACK);
+    }
+}
+
+    private void setCount(int i) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    private void setColor(Object object) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
 }

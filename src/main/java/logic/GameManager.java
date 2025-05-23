@@ -10,17 +10,42 @@ import model.Player;
 import model.Point;
 import network.MultiClientClient;
 
+/**
+ * GameManager sınıfı, tavla oyununun tüm mantığını ve akışını yöneten ana kontrol sınıfıdır.
+ * Oyuncular, zarlar, hamle sırası ve taşların hareketini yönetir.
+ * Sunucu-istemci mesajlaşmasını ve oyunun genel durumunu günceller.
+ */
 public class GameManager {
 
+    // Oyun tahtasını temsil eden Board nesnesi
     private Board board;
+
+    // Beyaz oyuncu nesnesi
     private Player whitePlayer;
+
+    // Siyah oyuncu nesnesi
     private Player blackPlayer;
+
+    // Sıradaki (hamle yapan) oyuncu
     private Player currentPlayer;
+
+    // Zar yönetimi için DiceManager nesnesi
     private DiceManager diceManager;
+
+    // O anda kalan oynanabilir zar değerleri listesi
     private List<Integer> moveValues = new ArrayList<>();
+
+    // Zar atılıp atılmadığını belirten bayrak
     private boolean diceRolled = false;
+
+    // Sunucuya bağlantı sağlayan istemci nesnesi (Client tarafı için)
     private MultiClientClient client;
 
+    /**
+     * GameManager yapıcı metodu. Oyuna iki oyuncu adı ile başlar ve gerekli nesneleri oluşturur.
+     * @param whiteName Beyaz oyuncunun adı
+     * @param blackName Siyah oyuncunun adı
+     */
     public GameManager(String whiteName, String blackName) {
         this.whitePlayer = new Player(whiteName, Color.WHITE);
         this.blackPlayer = new Player(blackName, Color.BLACK);
@@ -29,43 +54,82 @@ public class GameManager {
         this.diceManager = new DiceManager();
     }
 
+    /**
+     * Sunucuya veya istemciye ait client nesnesini bu sınıfa tanımlar.
+     * @param client MultiClientClient nesnesi
+     */
     public void setClient(MultiClientClient client) {
         this.client = client;
     }
 
+    /**
+     * Oyun tahtasını döndürür.
+     * @return Oyun tahtası (Board)
+     */
     public Board getBoard() {
         return board;
     }
 
+    /**
+     * Zarların atılıp atılmadığını döndürür.
+     * @return Zarlar atıldıysa true, atılmadıysa false
+     */
     public boolean isDiceRolled() {
         return diceRolled;
     }
 
+    /**
+     * Sıradaki oyuncuyu döndürür.
+     * @return Mevcut (hamle sırası olan) oyuncu
+     */
     public Player getCurrentPlayer() {
         return currentPlayer;
     }
 
+    /**
+     * Beyaz oyuncuyu döndürür.
+     * @return Beyaz oyuncu
+     */
     public Player getWhitePlayer() {
         return whitePlayer;
     }
 
+    /**
+     * Siyah oyuncuyu döndürür.
+     * @return Siyah oyuncu
+     */
     public Player getBlackPlayer() {
         return blackPlayer;
     }
 
+    /**
+     * Zarları yöneten DiceManager nesnesini döndürür.
+     * @return DiceManager nesnesi
+     */
     public DiceManager getDiceManager() {
         return diceManager;
     }
 
+    /**
+     * O an oynanabilecek kalan zar değerlerini (hamle değerlerini) döndürür.
+     * @return Kalan oynanabilir zar değerleri listesi
+     */
     public List<Integer> getRemainingMoves() {
         return new ArrayList<>(moveValues);
     }
 
+    /**
+     * Zar değerlerini elle ayarlar ve oynanabilir hamle listesini günceller.
+     * Genellikle sunucudan gelen zar mesajlarında kullanılır.
+     * @param die1 Birinci zar değeri
+     * @param die2 İkinci zar değeri
+     */
     public void setDiceValues(int die1, int die2) {
         diceManager.setDie1(die1);
         diceManager.setDie2(die2);
         moveValues.clear();
         if (die1 == die2) {
+            // Çifte geldiğinde 4 hamle hakkı olur
             for (int i = 0; i < 4; i++) {
                 moveValues.add(die1);
             }
@@ -76,6 +140,10 @@ public class GameManager {
         System.out.println("SERVER'DA GÜNCEL ZARLAR: " + moveValues);
     }
 
+    /**
+     * Zarları atar, yeni zar değerlerini belirler ve hamle listesini günceller.
+     * Zarlar atıldıktan sonra client (istemci) varsa sunucuya sonucu gönderir.
+     */
     public void rollDice() {
         if (diceRolled) {
             JOptionPane.showMessageDialog(null, "Hamlenizi tamamlamadan tekrar zar atamazsınız!");
@@ -89,6 +157,7 @@ public class GameManager {
         int d2 = diceManager.getDie2();
 
         if (d1 == d2) {
+            // Çifte geldiğinde 4 hamle hakkı olur
             for (int i = 0; i < 4; i++) {
                 moveValues.add(d1);
             }
@@ -103,19 +172,37 @@ public class GameManager {
         }
     }
 
+    /**
+     * Oyuncu sırasını değiştirir (hamle hakkını diğer oyuncuya verir) ve zar atılabilir hale getirir.
+     */
     public void switchTurn() {
         currentPlayer = (currentPlayer == whitePlayer) ? blackPlayer : whitePlayer;
         diceRolled = false;
     }
 
+    /**
+     * Belirtilen renkten oyuncunun bar’da (kırılmış taş) olup olmadığını kontrol eder.
+     * @param color Oyuncunun rengi
+     * @return Bar’da taş varsa true, yoksa false
+     */
     public boolean hasBarChecker(Color color) {
         return board.getBarCount(color) > 0;
     }
 
+    /**
+     * Belirtilen oyuncunun oyunu kazanıp kazanmadığını kontrol eder.
+     * Tüm taşlar dışarı çıkarılmışsa (borne off), oyuncu kazanır.
+     * @param player Oyuncu
+     * @return Oyuncu kazanmışsa true
+     */
     public boolean hasWon(Player player) {
         return board.getBorneOff(player.getColor()) == 15;
     }
 
+    /**
+     * Oyuncu adından mevcut oyuncuyu belirler (sunucudan gelen bilgilere göre sıralamayı günceller).
+     * @param playerName Oyuncu adı
+     */
     public void setCurrentPlayerByName(String playerName) {
         if (whitePlayer.getName().equals(playerName)) {
             currentPlayer = whitePlayer;
@@ -124,6 +211,11 @@ public class GameManager {
         }
     }
 
+    /**
+     * Bar'dan hamle yapılıp yapılamayacağını kontrol eder.
+     * Bar'da taş varsa ve en az bir zar ile içeri girilebiliyorsa true döner.
+     * @return Bar'dan çıkış mümkünse true
+     */
     public boolean canEnterFromBar() {
         if (board.getBarCount(currentPlayer.getColor()) == 0) {
             return false;
@@ -137,9 +229,13 @@ public class GameManager {
         }
         return false;
     }
-    // UI'den değil, sunucudan gelen MOVE mesajlarını işlemek için kullanılır.
-// Sıra kontrolü yapmaz, doğrudan tahtayı günceller.
 
+    /**
+     * UI'den değil, sunucudan gelen MOVE mesajlarını işlemek için kullanılır.
+     * Sıra kontrolü yapmaz, doğrudan tahtayı günceller.
+     * @param from Başlangıç noktası (indeks)
+     * @param to   Bitiş noktası (indeks)
+     */
     public void forceMoveChecker(int from, int to) {
         Point fromPoint = board.getPoint(from);
         Point toPoint = board.getPoint(to);
@@ -173,6 +269,13 @@ public class GameManager {
         }
     }
 
+    /**
+     * Oyuncunun kendi taşını belirtilen yerden başka bir noktaya taşımaya çalışır.
+     * Taş hamlesi geçerli ise işlemi gerçekleştirir ve server'a mesaj yollar.
+     * @param from Başlangıç noktası (indeks)
+     * @param to   Bitiş noktası (indeks)
+     * @return Hamle geçerliyse true, değilse false
+     */
     public boolean moveChecker(int from, int to) {
         Point fromPoint = board.getPoint(from);
         int distance = (currentPlayer.getColor() == Color.WHITE) ? to - from : from - to;
@@ -214,6 +317,11 @@ public class GameManager {
         }
     }
 
+    /**
+     * Bar'dan bir taşı tahtaya sokmayı dener. Başarılıysa sunucuya mesaj yollar.
+     * @param toIndex Bar'dan hangi noktaya taş girecek
+     * @return Hamle geçerliyse true
+     */
     public boolean moveFromBar(int toIndex) {
         Color color = currentPlayer.getColor();
         for (int die : moveValues) {
@@ -243,6 +351,11 @@ public class GameManager {
         return false;
     }
 
+    /**
+     * Taşların tamamı ev bölgesindeyse çıkış yapılabilir mi kontrol eder.
+     * @param color Renk
+     * @return Çıkış mümkünse true
+     */
     public boolean canBearOff(Color color) {
         int start = (color == Color.WHITE) ? 18 : 0;
         int end = (color == Color.WHITE) ? 24 : 6;
@@ -258,6 +371,10 @@ public class GameManager {
         return true;
     }
 
+    /**
+     * Herhangi bir taş için en az bir hamle mümkün mü kontrol eder.
+     * Kalan hamlelerle hareket yapılabiliyorsa true döner.
+     */
     private boolean anyMovePossible() {
         for (int from = 0; from < 24; from++) {
             Point point = board.getPoint(from);
@@ -276,6 +393,10 @@ public class GameManager {
         return false;
     }
 
+    /**
+     * Hiçbir taş için oynanabilir hamle yoksa true döner.
+     * @return Hamle yapılamıyorsa true
+     */
     public boolean hasNoAvailableMove() {
         for (int from = 0; from < 24; from++) {
             Point point = board.getPoint(from);
@@ -294,6 +415,11 @@ public class GameManager {
         return true;
     }
 
+    /**
+     * Bar'dan giriş yapılabilecek noktaların indekslerini döndürür.
+     * @param color Hangi oyuncu için bakılacak
+     * @return Giriş yapılabilecek indekslerin listesi
+     */
     public List<Integer> getBarEntryTargets(Color color) {
         List<Integer> targets = new ArrayList<>();
         for (int move : moveValues) {
@@ -305,14 +431,14 @@ public class GameManager {
         }
         return targets;
     }
-    // Sadece doğrulama için, tahtayı değiştirmeden hamlenin geçerli olup olmadığını kontrol eder
 
+    /**
+     * Sadece doğrulama amacıyla hamle yapılabilir mi kontrol eder (tahtayı değiştirmez).
+     * @param from Başlangıç noktası
+     * @param to   Bitiş noktası
+     * @return Hamle geçerli ise true
+     */
     public boolean moveCheckerTestOnly(int from, int to) {
-        System.out.println("SERVER: moveCheckerTestOnly from=" + from + " to=" + to);
-        System.out.println("SERVER: moveValues=" + moveValues);
-        System.out.println("SERVER: FROM (" + from + ") => renk: " + board.getPoint(from).getColor() + ", count: " + board.getPoint(from).getCount());
-        System.out.println("SERVER: TO (" + to + ") => renk: " + board.getPoint(to).getColor() + ", count: " + board.getPoint(to).getCount());
-        board.printBoard(); // Tüm board’u bastır
         Point fromPoint = board.getPoint(from);
         int distance = (currentPlayer.getColor() == Color.WHITE) ? to - from : from - to;
 
@@ -328,11 +454,19 @@ public class GameManager {
         return true;
     }
 
+    /**
+     * Sıradaki oyuncuyu doğrudan ayarlamak için kullanılır.
+     * @param player Yeni currentPlayer
+     */
     public void setCurrentPlayer(Player player) {
         this.currentPlayer = player;
     }
-    // Sadece bar'dan çıkışı kontrol et
 
+    /**
+     * Bar'dan belli bir noktaya çıkış yapılıp yapılamayacağını kontrol eder.
+     * @param targetIndex Hedef nokta
+     * @return Çıkış yapılabiliyorsa true
+     */
     public boolean canEnterFromBarTo(int targetIndex) {
         Color color = currentPlayer.getColor();
         for (int die : moveValues) {
@@ -347,7 +481,10 @@ public class GameManager {
         return false;
     }
 
-// Sunucu için: bar’dan taş çıkar
+    /**
+     * Sunucu için: Bar’dan taş çıkarma işlemini uygular.
+     * @param toIndex Hangi noktaya taş girecek
+     */
     public void moveFromBarServer(int toIndex) {
         Color color = currentPlayer.getColor();
         for (int die : moveValues) {
@@ -371,6 +508,12 @@ public class GameManager {
         }
     }
 
+    /**
+     * Oyuncu taşını tahtadan çıkarmaya (bear off) çalışır.
+     * Hamle başarılı olursa sıra değiştirilir ve sunucuya bildirilir.
+     * @param fromIndex Hangi noktadaki taş çıkacak
+     * @return Taş başarıyla çıkarsa true
+     */
     public boolean tryBearOff(int fromIndex) {
         Color color = currentPlayer.getColor();
         if (!canBearOff(color)) {
@@ -444,5 +587,4 @@ public class GameManager {
 
         return false;
     }
-
 }

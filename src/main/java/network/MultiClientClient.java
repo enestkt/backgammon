@@ -3,17 +3,31 @@ package network;
 import java.io.*;
 import java.net.*;
 
+/**
+ * MultiClientClient, istemci tarafında sunucuya bağlanıp
+ * mesaj gönderme/alma ve kendi oyuncu bilgisini tutma işini yapar.
+ */
 public class MultiClientClient {
 
+    // Sunucu IP adresi ve portu
     private String serverIp;
     private int serverPort;
+
+    // Ağ bağlantısı için socket ve IO nesneleri
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
-    private String playerName;       // Sana ait oyuncu adı
-    private String playerColor;      // Sana ait renk (WHITE veya BLACK)
-    private String currentPlayer;    // Şu an hamle yapma sırası kimde
 
+    // Oyuncu ve oyun durumu bilgileri
+    private String playerName;       // Kullanıcının oyuncu adı
+    private String playerColor;      // Kullanıcının rengi
+    private String currentPlayer;    // Sırası olan oyuncunun adı
+
+    /**
+     * Sunucuya bağlanır ve gerekli IO akışlarını başlatır.
+     * @param serverIp Sunucu IP adresi
+     * @param serverPort Sunucu portu
+     */
     public MultiClientClient(String serverIp, int serverPort) {
         this.serverIp = serverIp;
         this.serverPort = serverPort;
@@ -28,7 +42,10 @@ public class MultiClientClient {
         }
     }
 
-    // GameFrame içinde kullanacaksın: Sürekli mesaj dinle, gelen mesajı GameFrame.processMessage() ile işle
+    /**
+     * Sunucudan gelen mesajı okur. (Ana dinleme fonksiyonu)
+     * @return Okunan mesaj (String)
+     */
     public String receiveMessage() {
         try {
             return in.readLine();
@@ -39,7 +56,10 @@ public class MultiClientClient {
         }
     }
 
-    // Mesajı çöz, kendi oyuncu adını ve sırayı güncelle
+    /**
+     * Sunucudan veya rakipten gelen mesajı çözümler ve bilgileri günceller.
+     * @param message Alınan mesaj
+     */
     public void processMessage(String message) {
         try {
             if (message.startsWith("START:")) {
@@ -57,17 +77,28 @@ public class MultiClientClient {
         }
     }
 
-    // Oyun mesajları gönderimi (hepsinde kendi adını otomatik ekliyorsun)
-    // sendChat ve CHAT ile ilgili fonksiyonlar kaldırıldı.
-
+    /**
+     * Zar atma mesajı gönderir.
+     * @param die1 Birinci zar değeri
+     * @param die2 İkinci zar değeri
+     */
     public void sendRoll(int die1, int die2) {
-       sendMessage("ROLL:");
+        sendMessage("ROLL:");
     }
 
+    /**
+     * Taş hareketini sunucuya iletir.
+     * @param from Taşın geldiği index
+     * @param to   Taşın gideceği index
+     */
     public void sendMove(int from, int to) {
         sendMessage("MOVE:" + playerName + ":" + from + ":" + to);
     }
 
+    /**
+     * Sunucuya düz mesaj gönderir.
+     * @param message Gönderilecek mesaj
+     */
     public void sendMessage(String message) {
         if (out != null) {
             out.println(message);
@@ -89,6 +120,9 @@ public class MultiClientClient {
         return currentPlayer;
     }
 
+    /**
+     * Bağlantıyı kapatır.
+     */
     private void close() {
         try {
             if (socket != null && !socket.isClosed()) {

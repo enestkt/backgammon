@@ -2,6 +2,10 @@ package model;
 
 import java.io.Serializable;
 
+/**
+ * Color enum'u, tavla taşlarının ve noktalarının rengini tutmak için kullanılır.
+ * Oyuncu rengi, taş rengi veya özel durumlar için tanımlar içerir.
+ */
 public enum Color implements Serializable {
     WHITE,
     BLACK,
@@ -11,6 +15,11 @@ public enum Color implements Serializable {
     GRAY,
     CYAN;
 
+    /**
+     * String değeri uygun Color enum'una çevirir.
+     * @param value Renk ismi (örn: "white")
+     * @return Color nesnesi
+     */
     public static Color fromString(String value) {
         return switch (value.toLowerCase()) {
             case "white" -> WHITE;
@@ -24,6 +33,10 @@ public enum Color implements Serializable {
         };
     }
 
+    /**
+     * Enum'u string olarak döndürür (örn: "white")
+     * @return Renk adı küçük harflerle
+     */
     @Override
     public String toString() {
         return switch (this) {

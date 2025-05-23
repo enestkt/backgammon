@@ -8,10 +8,18 @@ import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 
+/**
+ * InfoPanel, oyuncu adı, zarlar, kalan hamleler, bar bilgisi ve kontrol butonlarını gösteren Swing panelidir.
+ */
 public class InfoPanel extends JPanel {
 
+    // Oyun mantığı
     private GameManager gameManager;
+
+    // Ağ üzerinden sunucuya mesaj göndermek için istemci
     private MultiClientClient client;
+
+    // GUI bileşenleri
     private JLabel playerLabel;
     private JLabel diceLabel;
     private JLabel remainingLabel;
@@ -21,12 +29,21 @@ public class InfoPanel extends JPanel {
     private JButton passButton;
     private boolean isMyTurn = false;
 
+    /**
+     * Oyuncunun sırası geldiğinde butonların aktifliğini ayarlar.
+     * @param turn Sıra sende mi
+     */
     public void setTurn(boolean turn) {
         this.isMyTurn = turn;
         rollButton.setEnabled(isMyTurn);
         passButton.setEnabled(isMyTurn);
     }
 
+    /**
+     * InfoPanel yapıcı metodu.
+     * @param gameManager Oyun mantığı
+     * @param client Ağ üzerinden mesaj göndermek için istemci
+     */
     public InfoPanel(GameManager gameManager, MultiClientClient client) {
         this.gameManager = gameManager;
         this.client = client;
@@ -64,27 +81,25 @@ public class InfoPanel extends JPanel {
         passButton = new JButton("Hamle Yapamıyorum");
         passButton.setFont(new Font("Arial", Font.PLAIN, 12));
         passButton.setPreferredSize(new Dimension(280, 30));
-        passButton.setEnabled(false); // Başlangıçta pasif
+        passButton.setEnabled(false);
         passButton.addActionListener(e -> {
             if (!isMyTurn) {
                 return;
             }
             if (gameManager.hasNoAvailableMove()) {
                 JOptionPane.showMessageDialog(this, "Hareket yapacak taşınız yok. Sıra diğer oyuncuya geçti.");
-                // YALNIZCA SUNUCUYA MESAJ GÖNDER
                 client.sendMessage("SWITCH_TURN:");
             } else {
                 JOptionPane.showMessageDialog(this, "Hareket yapabileceğiniz taşlar var!");
             }
         });
-
         buttonPanel.add(passButton);
 
         // "Zar At" Butonu
         rollButton = new JButton("🎲 Zar At");
         rollButton.setFont(new Font("Arial", Font.BOLD, 14));
         rollButton.setPreferredSize(new Dimension(280, 40));
-        rollButton.setEnabled(false); // Başlangıçta pasif
+        rollButton.setEnabled(false);
         rollButton.addActionListener(e -> {
             if (!isMyTurn) {
                 return;
@@ -99,15 +114,15 @@ public class InfoPanel extends JPanel {
                 }
             }
         });
-
         buttonPanel.add(rollButton);
         infoPanel.add(buttonPanel);
 
         add(infoPanel, BorderLayout.NORTH);
-
-        // --- CHAT Alanı, inputu, butonu ve fonksiyonları tamamen silindi! ---
     }
 
+    /**
+     * Oyuncu, zar ve bar bilgilerini günceller (GUI üstündeki yazılar yenilenir).
+     */
     public void updateInfo() {
         playerLabel.setText("Sıra: " + gameManager.getCurrentPlayer().getName()
                 + " (" + gameManager.getCurrentPlayer().getColor().toString().toUpperCase() + ")");

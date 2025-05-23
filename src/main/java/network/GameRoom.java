@@ -8,27 +8,48 @@ import logic.GameManager;
 import model.Color;
 import model.Player;
 
+/**
+ * GameRoom sınıfı, bir oyun odasını ve odaya ait oyuncuları yönetir.
+ * Her oda 2 oyuncudan oluşur, sunucudaki oyunun ilerleyişi ve kuralların merkezi burada sağlanır.
+ */
 public class GameRoom {
 
+    // Odaya bağlı oyuncuları (ClientHandler) tutar
     private final List<ClientHandler> players = Collections.synchronizedList(new ArrayList<>(2));
+
+    // Her odanın benzersiz ID'si
     private final int roomID;
+
+    // Şu anki oyuncu dizinini tutar (0 veya 1)
     private int currentPlayerIndex = 0;
+
+    // Oyun mantığı ve akışını yöneten ana sınıf
     private GameManager gameManager = null;
+
+    // Her iki oyuncunun nesneleri ve adları
     private Player whitePlayer = null;
     private Player blackPlayer = null;
     private String whiteName = null;
     private String blackName = null;
 
+    /**
+     * GameRoom yapıcı metodu. Oda ID'si atanır.
+     */
     public GameRoom() {
         this.roomID = this.hashCode();
     }
 
-    // Odaya oyuncu ekleme
+    /**
+     * Odaya yeni oyuncu ekler, gerekli atamaları yapar ve GameManager başlatır.
+     * @param clientSocket Oyuncunun bağlantı soketi
+     * @param playerName Oyuncu adı
+     * @param color Oyuncu rengi
+     */
     public synchronized void addPlayer(Socket clientSocket, String playerName, String color) {
         ClientHandler clientHandler = new ClientHandler(clientSocket, playerName, color, this);
         players.add(clientHandler);
 
-        // Oyuncu isimlerini ve nesnelerini kaydet
+        // Oyuncu nesnesini ve adını uygun şekilde kaydet
         if (color.equalsIgnoreCase("WHITE")) {
             whiteName = playerName;
             whitePlayer = new Player(playerName, Color.WHITE);
@@ -37,7 +58,7 @@ public class GameRoom {
             blackPlayer = new Player(playerName, Color.BLACK);
         }
 
-        // Her iki oyuncu da eklendiyse GameManager'ı oluştur
+        // İki oyuncu da geldiyse GameManager başlat
         if (whiteName != null && blackName != null && gameManager == null) {
             gameManager = new GameManager(whiteName, blackName);
             System.out.println("GameManager sunucuda başlatıldı!");
@@ -48,21 +69,33 @@ public class GameRoom {
         new Thread(clientHandler).start();
     }
 
-    // Oyuncu kaldırma
+    /**
+     * Odaya bağlı bir oyuncuyu çıkarır ve oyunculara bildirir.
+     * @param player Çıkarılacak oyuncunun ClientHandler'ı
+     */
     public synchronized void removePlayer(ClientHandler player) {
         players.remove(player);
         broadcast("LEFT:" + player.getPlayerName());
         System.out.println("Oyuncu ayrıldı: " + player.getPlayerName());
     }
 
-    // Oyunculara mesaj gönderme
+    /**
+     * Oda içindeki tüm oyunculara mesaj gönderir.
+     * @param message Gönderilecek mesaj
+     */
     public synchronized void broadcast(String message) {
         for (ClientHandler player : players) {
             player.sendMessage(message);
         }
     }
 
-    // Hamle geçerli mi kontrolü (sadece sunucuda)
+    /**
+     * Bir hamlenin sunucu kurallarına göre geçerli olup olmadığını kontrol eder.
+     * @param playerName Hamle yapan oyuncunun adı
+     * @param from Taşın geldiği index
+     * @param to Taşın gideceği index
+     * @return Geçerli ise true
+     */
     public synchronized boolean isMoveValid(String playerName, int from, int to) {
         if (gameManager == null) {
             return false;
@@ -80,11 +113,15 @@ public class GameRoom {
             return false; // Sıra kontrolü
         }
         gameManager.setCurrentPlayer(player); // O anki oyuncu olarak güncelle
-        // Zar değerine ve tahtaya göre kontrol:
         return gameManager.moveCheckerTestOnly(from, to);
     }
 
-    // Geçerli hamle ise GameManager’da gerçekten uygula
+    /**
+     * Geçerli hamleyi sunucu tarafında uygular ve sırayı yönetir.
+     * @param playerName Hamle yapan oyuncunun adı
+     * @param from Başlangıç noktası
+     * @param to Bitiş noktası
+     */
     public synchronized void applyMove(String playerName, int from, int to) {
         if (gameManager == null) {
             return;
@@ -99,13 +136,18 @@ public class GameRoom {
             return;
         }
         gameManager.setCurrentPlayer(player);
-        boolean success = gameManager.moveChecker(from, to);  // <--- Önemli
-        // >>> Eğer success && moveValues.isEmpty() ise, sunucuda sırayı değiştir!
+        boolean success = gameManager.moveChecker(from, to);
         if (success && gameManager.getRemainingMoves().isEmpty()) {
             switchTurn();
         }
     }
 
+    /**
+     * Bar'dan giriş hamlesi geçerli mi kontrol eder.
+     * @param playerName Oyuncunun adı
+     * @param to Bar'dan girdiği nokta
+     * @return Geçerli ise true
+     */
     public synchronized boolean isBarMoveValid(String playerName, int to) {
         if (gameManager == null) {
             return false;
@@ -118,10 +160,13 @@ public class GameRoom {
             return false;
         }
         gameManager.setCurrentPlayer(player);
-        // Kontrolü GameManager’da yap
         return gameManager.canEnterFromBarTo(to);
     }
 
+    /**
+     * O anki oyuncunun kalan hamlesi yok mu kontrolü.
+     * @return Kalan hamle yoksa true
+     */
     public synchronized boolean isMoveValuesEmpty() {
         if (gameManager == null) {
             return true;
@@ -129,6 +174,11 @@ public class GameRoom {
         return gameManager.getRemainingMoves().isEmpty();
     }
 
+    /**
+     * Bar'dan giriş hamlesini uygular.
+     * @param playerName Oyuncunun adı
+     * @param to Bar'dan girdiği nokta
+     */
     public synchronized void applyBarMove(String playerName, int to) {
         if (gameManager == null) {
             return;
@@ -141,7 +191,11 @@ public class GameRoom {
         gameManager.moveFromBarServer(to);
     }
 
-    // Zar değerlerini GameManager'a gönder
+    /**
+     * Zar değerlerini günceller.
+     * @param die1 Birinci zar
+     * @param die2 İkinci zar
+     */
     public synchronized void setDiceValues(int die1, int die2) {
         if (gameManager != null) {
             gameManager.setDiceValues(die1, die2);
@@ -150,7 +204,9 @@ public class GameRoom {
         }
     }
 
-    // Sıra değiştirme
+    /**
+     * Sırayı değiştirir (hamle hakkını diğer oyuncuya verir) ve oyunculara bildirir.
+     */
     public synchronized void switchTurn() {
         currentPlayerIndex = (currentPlayerIndex == 1) ? 0 : 1;
         String nextPlayer = players.get(currentPlayerIndex).getPlayerName();
@@ -158,17 +214,26 @@ public class GameRoom {
         System.out.println("Sıra değişti: " + nextPlayer);
     }
 
-    // Mevcut oyuncu adını döndürme
+    /**
+     * Şu anki oyuncunun adını döndürür.
+     * @return Mevcut oyuncunun adı
+     */
     public String getCurrentPlayerName() {
         return players.get(currentPlayerIndex).getPlayerName();
     }
 
-    // Oda ID'sini döndürme
+    /**
+     * Oda ID'sini döndürür.
+     * @return roomID
+     */
     public int getRoomID() {
         return this.roomID;
     }
 
-    // Oyuncu listesini döndürme
+    /**
+     * Odaya bağlı oyuncuların bağlantılarını (socket) döndürür.
+     * @return Socket listesi
+     */
     public synchronized List<Socket> getPlayers() {
         List<Socket> sockets = new ArrayList<>();
         for (ClientHandler player : players) {
@@ -177,8 +242,11 @@ public class GameRoom {
         return sockets;
     }
 
+    /**
+     * Odaya bağlı tüm ClientHandler nesnelerini döndürür.
+     * @return ClientHandler listesi
+     */
     public synchronized List<ClientHandler> getClientHandlers() {
         return new ArrayList<>(players);
     }
-
 }

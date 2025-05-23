@@ -6,8 +6,15 @@ import java.awt.*;
 import java.io.IOException;
 import network.MultiClientClient;
 
+/**
+ * MainFrame, ana menü penceresini ve offline/online oyun başlatma ekranını oluşturur.
+ * Oyuncu, oyun türünü seçebilir ve online bağlantı için IP girişi yapabilir.
+ */
 public class MainFrame extends JFrame {
 
+    /**
+     * MainFrame yapıcı metodu. Ana menü ekranını başlatır.
+     */
     public MainFrame() {
         setTitle("Tavla - Ana Menü");
         setSize(400, 300);
@@ -31,37 +38,41 @@ public class MainFrame extends JFrame {
         setVisible(true);
     }
 
+    /**
+     * Offline oyun başlatır (sunucuya gerek olmadan).
+     */
     private void startOfflineGame() {
         try {
             GameManager manager = new GameManager("Player 1", "Player 2");
-            new GameFrame(manager, null);  // Offline modda null geçiyoruz
+            new GameFrame(manager, null);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Oyun başlatma hatası: " + e.getMessage());
         }
     }
 
+    /**
+     * Online oyun başlatır ve kullanıcıdan sunucu IP adresini ister.
+     */
     private void startOnlineGame() {
-        // Kullanıcıdan IP adresini al
         String ipAddress = JOptionPane.showInputDialog(null, "Sunucu IP adresini giriniz:", "127.0.0.1");
-
-        // Eğer kullanıcı bir şey girmezse veya "Cancel" derse işlem iptal edilir
         if (ipAddress == null || ipAddress.isEmpty()) {
             JOptionPane.showMessageDialog(null, "Bağlantı iptal edildi.");
             return;
         }
 
         try {
-            // Bağlanmaya çalış
             GameManager manager = new GameManager("Player 1", "Player 2");
-            // Client oluştur ve sunucuya bağlan
             MultiClientClient client = new MultiClientClient(ipAddress, 5000);
-            new GameFrame(manager, client);  // Client bilgisini geçir
+            new GameFrame(manager, client);
             setVisible(false);
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, "Bağlantı hatası: " + e.getMessage());
         }
     }
 
+    /**
+     * Uygulama giriş noktası, ana menüyü başlatır.
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(MainFrame::new);
     }

@@ -98,10 +98,7 @@ public class InfoPanel extends JPanel {
             } else {
                 if (gameManager.getRemainingMoves().size() == 0) {
                     // *** LOCAL rollDice() YOK! ***
-                    // Zar değerini burada oluşturabilirsin ya da server tarafında random ata
-                    int die1 = (int) (Math.random() * 6) + 1;
-                    int die2 = (int) (Math.random() * 6) + 1;
-                    client.sendRoll(die1, die2);
+                    client.sendMessage("ROLL:");
                     // Local olarak updateInfo() veya başka bir şey yok!
                 } else {
                     System.out.println("karşı rakip tüm hamlesini daha yapmadı");

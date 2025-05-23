@@ -63,7 +63,7 @@ public class MultiClientClient {
     }
 
     public void sendRoll(int die1, int die2) {
-        sendMessage("ROLL:" + playerName + ":" + die1 + ":" + die2);
+       sendMessage("ROLL:");
     }
 
     public void sendMove(int from, int to) {

@@ -55,8 +55,6 @@ public class MultiClientServer {
                 // Sıra bilgisini herkese yayınla
                 broadcastMessage(room, "TURN:Player 1:WHITE");
 
-                new Thread(() -> handleClient(player1, room)).start();
-                new Thread(() -> handleClient(player2, room)).start();
             }
         }
     }
@@ -72,29 +70,70 @@ public class MultiClientServer {
     }
 
     private static void handleClient(Socket clientSocket, GameRoom assignedRoom) {
+        String myPlayerName = null;
+
+        // Oyuncunun adı hangi sokete atanmışsa o
+        // Bunu addPlayerToLobby'de verdiğin "Player 1"/"Player 2" ile mapleyebilirsin
+        // Veya GameRoom üzerinden çekebilirsin
+        // Bağlanan oyuncunun adını bul
+        for (ClientHandler handler : assignedRoom.getClientHandlers()) {
+            if (handler.getSocket().equals(clientSocket)) {
+                myPlayerName = handler.getPlayerName();
+                break;
+            }
+        }
+
         try (
                 BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream())); PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
             String message;
             while ((message = in.readLine()) != null) {
                 System.out.println("Sunucuya gelen mesaj: " + message);
 
-                if (message.startsWith("MOVE:") || message.startsWith("ROLL:")) {
-                    String currentPlayer = assignedRoom.getCurrentPlayerName();
-                    String playerName = message.split(":")[1];
-                    if (!currentPlayer.equals(playerName)) {
-                        System.out.println("Sıra hatası: " + playerName);
-                        out.println("ERROR:Sıra " + currentPlayer + "'da!");
+                if (message.startsWith("MOVE:")) {
+                    // Ör: "MOVE:Player 1:from:to"
+                    String[] parts = message.split(":");
+                    if (parts.length != 4) {
                         continue;
                     }
-                    assignedRoom.switchTurn();
-                    broadcastMessage(assignedRoom, message); // Bu sıradan hemen sonra!
-                } else if (message.startsWith("SWITCH_TURN:")) {
-                    // Sunucuya zorunlu pas geldi
-                    assignedRoom.switchTurn();
-                    // Burada ekstra bir mesaj yollamaya gerek yok, switchTurn zaten TURN mesajı atıyor
-                } else {
-                    broadcastMessage(assignedRoom, message);
+                    String movePlayer = parts[1];
+                    if (!assignedRoom.getCurrentPlayerName().equals(movePlayer)) {
+                        System.out.println("Sıra hatası: " + movePlayer);
+                        out.println("ERROR:Sıra " + assignedRoom.getCurrentPlayerName() + "'da!");
+                        continue;
+                    }
+                    // Hamle geçerli mi kontrolü sunucu tarafında yapılmalı!
+                    if (assignedRoom.isMoveValid(movePlayer, Integer.parseInt(parts[2]), Integer.parseInt(parts[3]))) {
+                        assignedRoom.applyMove(movePlayer, Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
+                        broadcastMessage(assignedRoom, message);
+                        assignedRoom.switchTurn();
+                    } else {
+                        out.println("ERROR:Geçersiz hamle! Zar veya taş kuralına uymuyor.");
+                    }
+                    continue;
                 }
+
+                if (message.startsWith("ROLL:")) {
+                    // Oyuncu zar atmak istiyor
+                    if (!assignedRoom.getCurrentPlayerName().equals(myPlayerName)) {
+                        out.println("ERROR:Sıra sende değil!");
+                        continue;
+                    }
+                    // Zarları sunucu atsın!
+                    int die1 = (int) (Math.random() * 6) + 1;
+                    int die2 = (int) (Math.random() * 6) + 1;
+                    assignedRoom.setDiceValues(die1, die2);
+                    broadcastMessage(assignedRoom, "ROLL:" + myPlayerName + ":" + die1 + ":" + die2);
+                    System.out.println("🎲 Zar atıldı: " + myPlayerName + " - " + die1 + ", " + die2);
+                    continue;
+                }
+
+                if (message.startsWith("SWITCH_TURN:")) {
+                    assignedRoom.switchTurn();
+                    continue;
+                }
+
+                // Diğer tüm mesajları broadcast et (örn. CHAT, LEFT)
+                broadcastMessage(assignedRoom, message);
             }
         } catch (IOException e) {
             System.err.println("İstemci bağlantı hatası: " + e.getMessage());

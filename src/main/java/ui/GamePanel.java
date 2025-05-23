@@ -31,8 +31,9 @@ public class GamePanel extends JPanel {
                 if (!isMyTurn) {
                     return;
                 }
-                if (client == null) return; // Online değilse güvenlik
-
+                if (client == null) {
+                    return; // Online değilse güvenlik
+                }
                 int clickedIndex = getClickedPointIndex(e.getX(), e.getY());
 
                 if (gameManager.hasBarChecker(gameManager.getCurrentPlayer().getColor())) {
@@ -61,6 +62,9 @@ public class GamePanel extends JPanel {
                         selectedPointIndex = clickedIndex;
                     }
                 } else {
+                    System.out.println("CLIENT: MOVE gönderiliyor - from=" + selectedPointIndex + " to=" + clickedIndex
+                            + " taş rengi: " + gameManager.getBoard().getPoint(selectedPointIndex).getColor()
+                            + ", taş sayısı: " + gameManager.getBoard().getPoint(selectedPointIndex).getCount());
                     // *** ARTIK LOCAL HAMLE YOK ***
                     // Sadece servera hamle mesajı gönder
                     client.sendMove(selectedPointIndex, clickedIndex);
@@ -92,7 +96,6 @@ public class GamePanel extends JPanel {
     }
 
     // Aşağısı çizim kodları aynı
-
     private void checkGameOver() {
         Player current = gameManager.getCurrentPlayer();
         if (gameManager.hasWon(current)) {
@@ -211,6 +214,12 @@ public class GamePanel extends JPanel {
             g.setColor(baseColor == java.awt.Color.WHITE ? java.awt.Color.BLACK : java.awt.Color.WHITE);
             g.drawOval(x, y, diameter, diameter);
         }
+    }
+
+    public void clearSelections() {
+        selectedPointIndex = -1;
+        barCheckerSelected = false;
+        repaint();
     }
 
     private void drawBarChecker(Graphics g) {

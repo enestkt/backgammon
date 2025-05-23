@@ -60,13 +60,14 @@ public class GameFrame extends JFrame {
             if (message.startsWith("START:")) {
                 String[] parts = message.split(":");
                 myPlayerName = parts[1];
-                 System.out.println("myPlayerName SET: " + myPlayerName);// "Player 1" veya "Player 2"
-                // Dilersen oyuncu rengi vs. burada alabilirsin: String myColor = parts[2];
+                System.out.println("myPlayerName SET: " + myPlayerName);// "Player 1" veya "Player 2"
                 infoPanel.updateInfo();
+
             } else if (message.startsWith("TURN:")) {
-                String turnPlayer = message.substring(5).split(":")[0].trim(); // SADECE isim!
+                String turnPlayer = message.substring(5).split(":")[0].trim();
                 isMyTurn = turnPlayer.equals(myPlayerName);
-                 System.out.println("myPlayerName: " + myPlayerName + " turnPlayer: " + turnPlayer + " isMyTurn: " + isMyTurn);
+                 gameManager.setCurrentPlayerByName(turnPlayer); // <-- EKLE
+                System.out.println("myPlayerName: " + myPlayerName + " turnPlayer: " + turnPlayer + " isMyTurn: " + isMyTurn);
                 infoPanel.setTurn(isMyTurn);
                 gamePanel.setTurn(isMyTurn);
                 infoPanel.updateInfo();
@@ -78,6 +79,7 @@ public class GameFrame extends JFrame {
                 gameManager.setDiceValues(die1, die2);
                 infoPanel.updateInfo();
                 gamePanel.repaint();
+
             } else if (message.startsWith("MOVE:")) {
                 String[] parts = message.split(":");
                 int from = Integer.parseInt(parts[2]);
@@ -85,16 +87,23 @@ public class GameFrame extends JFrame {
                 gameManager.forceMoveChecker(from, to);
                 infoPanel.updateInfo();
                 gamePanel.repaint();
+
             } else if (message.startsWith("CHAT:")) {
                 infoPanel.updateChat(message.substring(5));
+
             } else if (message.startsWith("ERROR:")) {
                 JOptionPane.showMessageDialog(this, message.substring(6), "Hata", JOptionPane.ERROR_MESSAGE);
+                // --- EKLENECEK KISIM ---
+                infoPanel.updateInfo();
+                gamePanel.clearSelections();
+                gamePanel.repaint();
             }
         } catch (Exception e) {
             System.err.println("Mesaj işleme hatası: " + e.getMessage());
         }
     }
 
+    
     // Aşağıdaki methodlar GUI kodunu sadeleştiriyor:
     public void sendMove(int from, int to) {
         client.sendMove(from, to);

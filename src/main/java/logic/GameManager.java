@@ -64,6 +64,16 @@ public class GameManager {
     public void setDiceValues(int die1, int die2) {
         diceManager.setDie1(die1);
         diceManager.setDie2(die2);
+        moveValues.clear();
+        if (die1 == die2) {
+            for (int i = 0; i < 4; i++) {
+                moveValues.add(die1);
+            }
+        } else {
+            moveValues.add(die1);
+            moveValues.add(die2);
+        }
+        System.out.println("SERVER'DA GÜNCEL ZARLAR: " + moveValues);
     }
 
     public void rollDice() {
@@ -104,6 +114,14 @@ public class GameManager {
 
     public boolean hasWon(Player player) {
         return board.getBorneOff(player.getColor()) == 15;
+    }
+
+    public void setCurrentPlayerByName(String playerName) {
+        if (whitePlayer.getName().equals(playerName)) {
+            currentPlayer = whitePlayer;
+        } else if (blackPlayer.getName().equals(playerName)) {
+            currentPlayer = blackPlayer;
+        }
     }
 
     public boolean canEnterFromBar() {
@@ -147,7 +165,9 @@ public class GameManager {
         try {
             toPoint.addChecker(movingColor);
             fromPoint.removeChecker();
-            switchTurn(); // sırayı değiştir
+            int distance = (movingColor == model.Color.WHITE) ? to - from : from - to;
+            moveValues.remove((Integer) distance);
+
         } catch (IllegalStateException e) {
             System.err.println("Sunucudan gelen hamle uygulanamadı: " + e.getMessage());
         }
@@ -284,6 +304,32 @@ public class GameManager {
             }
         }
         return targets;
+    }
+    // Sadece doğrulama için, tahtayı değiştirmeden hamlenin geçerli olup olmadığını kontrol eder
+
+    public boolean moveCheckerTestOnly(int from, int to) {
+        System.out.println("SERVER: moveCheckerTestOnly from=" + from + " to=" + to);
+        System.out.println("SERVER: moveValues=" + moveValues);
+        System.out.println("SERVER: FROM (" + from + ") => renk: " + board.getPoint(from).getColor() + ", count: " + board.getPoint(from).getCount());
+        System.out.println("SERVER: TO (" + to + ") => renk: " + board.getPoint(to).getColor() + ", count: " + board.getPoint(to).getCount());
+        board.printBoard(); // Tüm board’u bastır
+        Point fromPoint = board.getPoint(from);
+        int distance = (currentPlayer.getColor() == Color.WHITE) ? to - from : from - to;
+
+        // Hamle şartlarını kontrol et (oyuncunun taşı mı, zar uygun mu, blok var mı)
+        if (fromPoint.isEmpty() || fromPoint.getColor() != currentPlayer.getColor() || distance <= 0 || !moveValues.contains(distance)) {
+            return false;
+        }
+
+        Point toPoint = board.getPoint(to);
+        if (!toPoint.isEmpty() && toPoint.getColor() != currentPlayer.getColor() && toPoint.getCount() > 1) {
+            return false;
+        }
+        return true;
+    }
+
+    public void setCurrentPlayer(Player player) {
+        this.currentPlayer = player;
     }
 
     public boolean tryBearOff(int fromIndex) {

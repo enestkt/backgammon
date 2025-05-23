@@ -20,7 +20,6 @@ public class ClientHandler implements Runnable {
         this.room = room;
     }
 
-    @Override
     public void run() {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
             out = new PrintWriter(socket.getOutputStream(), true);
@@ -35,35 +34,40 @@ public class ClientHandler implements Runnable {
                 if (message.startsWith("MOVE:")) {
                     String[] parts = message.split(":");
                     if (parts.length == 4) {
-                        if (!room.getCurrentPlayerName().equals(playerName)) {
-                            sendMessage("ERROR:Sıra " + room.getCurrentPlayerName() + "'da!");
-                            continue;
-                        }
                         String movePlayer = parts[1];
                         int from = Integer.parseInt(parts[2]);
                         int to = Integer.parseInt(parts[3]);
-                        room.broadcast("MOVE:" + movePlayer + ":" + from + ":" + to);
-                        room.switchTurn();
-                        System.out.println("✅ Hamle işlendi: " + movePlayer + " - " + from + " -> " + to);
-                    } else {
-                        System.err.println("❌ MOVE formatı hatalı: " + message);
-                    }
-                } else if (message.startsWith("ROLL:")) {
-                    String[] parts = message.split(":");
-                    if (parts.length == 4) {
+                        // SUNUCUDA GEÇERLİLİK KONTROLÜ
                         if (!room.getCurrentPlayerName().equals(playerName)) {
                             sendMessage("ERROR:Sıra " + room.getCurrentPlayerName() + "'da!");
                             continue;
                         }
-                        String rollPlayer = parts[1];
-                        int die1 = Integer.parseInt(parts[2]);
-                        int die2 = Integer.parseInt(parts[3]);
-                        room.broadcast("ROLL:" + rollPlayer + ":" + die1 + ":" + die2);
-                        System.out.println("🎲 Zar atıldı: " + rollPlayer + " - " + die1 + ", " + die2);
-                    } else {
-                        System.err.println("❌ ROLL formatı hatalı: " + message);
+                        if (room.isMoveValid(movePlayer, from, to)) {
+                            room.applyMove(movePlayer, from, to);
+                            room.broadcast("MOVE:" + movePlayer + ":" + from + ":" + to);
+                            
+                        } else {
+                            sendMessage("ERROR:Geçersiz hamle! Zar veya taş kuralına uymuyor.");
+                        }
                     }
-                } else if (message.startsWith("CHAT:")) {
+                    continue; // Diğer if'lere bakmasın!
+                }
+
+                if (message.startsWith("ROLL:")) {
+                    if (!room.getCurrentPlayerName().equals(playerName)) {
+                        sendMessage("ERROR:Sıra sende değil!");
+                        continue;
+                    }
+                    // Zarları SUNUCU atsın, client'ın gönderdiği zarları YOK SAY!
+                    int die1 = (int) (Math.random() * 6) + 1;
+                    int die2 = (int) (Math.random() * 6) + 1;
+                    room.setDiceValues(die1, die2); // SUNUCUDAKİ GameManager'ın moveValues'u güncellensin!
+                    room.broadcast("ROLL:" + playerName + ":" + die1 + ":" + die2);
+                    System.out.println("🎲 Zar atıldı: " + playerName + " - " + die1 + ", " + die2);
+                    continue;
+                }
+
+                if (message.startsWith("CHAT:")) {
                     String[] parts = message.split(":", 3);
                     if (parts.length == 3) {
                         String chatPlayer = parts[1];
@@ -71,12 +75,16 @@ public class ClientHandler implements Runnable {
                         room.broadcast("CHAT:" + chatPlayer + ":" + chatMessage);
                         System.out.println("💬 Sohbet: " + chatPlayer + ": " + chatMessage);
                     }
-                } else if (message.startsWith("LEFT:")) {
+                    continue;
+                }
+
+                if (message.startsWith("LEFT:")) {
                     room.broadcast("LEFT:" + playerName);
                     System.out.println("🚪 Oyuncu ayrıldı: " + playerName);
-                } else {
-                    System.err.println("❓ Bilinmeyen mesaj türü: " + message);
+                    continue;
                 }
+
+                System.err.println("❓ Bilinmeyen mesaj türü: " + message);
             }
         } catch (IOException e) {
             System.err.println("❌ " + playerName + " bağlantı hatası: " + e.getMessage());

@@ -24,56 +24,56 @@ public class GamePanel extends JPanel {
     public GamePanel(GameManager gameManager) {
         this.gameManager = gameManager;
         setBackground(new java.awt.Color(200, 200, 200));
-
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (!isMyTurn) {
+                if (!isMyTurn || client == null) {
                     return;
-                }
-                if (client == null) {
-                    return; // Online değilse güvenlik
                 }
                 int clickedIndex = getClickedPointIndex(e.getX(), e.getY());
 
+                // Eğer bar'da taş varsa sadece bar'dan çıkılabilir!
                 if (gameManager.hasBarChecker(gameManager.getCurrentPlayer().getColor())) {
+                    // Yutulan taş simgesine tıklanırsa hamle başlasın
                     if (barCheckerClicked(e.getX(), e.getY())) {
                         barCheckerSelected = true;
+                        selectedPointIndex = -1; // Diğer seçim sıfırlansın
                         repaint();
                         return;
                     }
-                    // *** LOCAL OLARAK moveFromBar YAPMA ***
+                    // Eğer bar taşı seçildiyse ve tahtadaki uygun yere tıkladıysan...
                     if (barCheckerSelected && clickedIndex != -1) {
-                        // Sadece servera mesaj gönder
-                        client.sendMove(0, clickedIndex); // Bar'dan taş çıkınca from=0
+                        client.sendMessage("MOVE_BAR:" + clickedIndex); // from=0 (bar'dan) to=clickedIndex
                         barCheckerSelected = false;
-                        // Local olarak hareket etme!
+                        selectedPointIndex = -1; // Seçimleri sıfırla
                     }
-                    return;
+                    return; // Bar'da taş varken başka işlem yok!
                 }
 
+                // Bar'da taş yoksa klasik taş seçimi ve hamlesi:
                 if (clickedIndex == -1) {
+                    selectedPointIndex = -1;
+                    repaint();
                     return;
                 }
 
                 if (selectedPointIndex == -1) {
                     Point point = gameManager.getBoard().getPoint(clickedIndex);
+                    // Sadece kendi taşını seçebilirsin
                     if (!point.isEmpty() && point.getColor() == gameManager.getCurrentPlayer().getColor()) {
                         selectedPointIndex = clickedIndex;
+                        repaint();
                     }
                 } else {
-                    System.out.println("CLIENT: MOVE gönderiliyor - from=" + selectedPointIndex + " to=" + clickedIndex
-                            + " taş rengi: " + gameManager.getBoard().getPoint(selectedPointIndex).getColor()
-                            + ", taş sayısı: " + gameManager.getBoard().getPoint(selectedPointIndex).getCount());
-                    // *** ARTIK LOCAL HAMLE YOK ***
-                    // Sadece servera hamle mesajı gönder
+                    // Hamle gönder
                     client.sendMove(selectedPointIndex, clickedIndex);
                     selectedPointIndex = -1;
-                    // Local olarak gameManager.moveChecker() veya updateInfo()/repaint() yok!
+                    repaint();
                 }
-                repaint(); // Sadece görsel güncelleme (seçili vurgusu için)
             }
         });
+
+//      
     }
 
     // GameFrame’den çağrılırken client referansını da verelim

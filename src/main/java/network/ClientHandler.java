@@ -3,7 +3,6 @@ package network;
 
 import java.io.*;
 import java.net.*;
-import java.util.*;
 
 public class ClientHandler implements Runnable {
 
@@ -31,13 +30,32 @@ public class ClientHandler implements Runnable {
             while ((message = in.readLine()) != null) {
                 System.out.println("📥 Sunucu aldı: " + message + " (gönderen: " + playerName + ")");
 
+                // ---- MOVE_BAR EKLENDİ ----
+                if (message.startsWith("MOVE_BAR:")) {
+                    String[] parts = message.split(":");
+                    if (parts.length == 2) {
+                        int to = Integer.parseInt(parts[1]);
+                        if (!room.getCurrentPlayerName().equals(playerName)) {
+                            sendMessage("ERROR:Sıra " + room.getCurrentPlayerName() + "'da!");
+                            continue;
+                        }
+                        if (room.isBarMoveValid(playerName, to)) {
+                            room.applyBarMove(playerName, to);
+                            room.broadcast("MOVE_BAR:" + playerName + ":" + to);
+                        } else {
+                            sendMessage("ERROR:Bar’dan taş çıkarılamıyor.");
+                        }
+                    }
+                    continue;
+                }
+                // -------------------------
+
                 if (message.startsWith("MOVE:")) {
                     String[] parts = message.split(":");
                     if (parts.length == 4) {
                         String movePlayer = parts[1];
                         int from = Integer.parseInt(parts[2]);
                         int to = Integer.parseInt(parts[3]);
-                        // SUNUCUDA GEÇERLİLİK KONTROLÜ
                         if (!room.getCurrentPlayerName().equals(playerName)) {
                             sendMessage("ERROR:Sıra " + room.getCurrentPlayerName() + "'da!");
                             continue;
@@ -45,12 +63,11 @@ public class ClientHandler implements Runnable {
                         if (room.isMoveValid(movePlayer, from, to)) {
                             room.applyMove(movePlayer, from, to);
                             room.broadcast("MOVE:" + movePlayer + ":" + from + ":" + to);
-                            
                         } else {
                             sendMessage("ERROR:Geçersiz hamle! Zar veya taş kuralına uymuyor.");
                         }
                     }
-                    continue; // Diğer if'lere bakmasın!
+                    continue;
                 }
 
                 if (message.startsWith("ROLL:")) {
@@ -58,25 +75,15 @@ public class ClientHandler implements Runnable {
                         sendMessage("ERROR:Sıra sende değil!");
                         continue;
                     }
-                    // Zarları SUNUCU atsın, client'ın gönderdiği zarları YOK SAY!
                     int die1 = (int) (Math.random() * 6) + 1;
                     int die2 = (int) (Math.random() * 6) + 1;
-                    room.setDiceValues(die1, die2); // SUNUCUDAKİ GameManager'ın moveValues'u güncellensin!
+                    room.setDiceValues(die1, die2);
                     room.broadcast("ROLL:" + playerName + ":" + die1 + ":" + die2);
                     System.out.println("🎲 Zar atıldı: " + playerName + " - " + die1 + ", " + die2);
                     continue;
                 }
 
-                if (message.startsWith("CHAT:")) {
-                    String[] parts = message.split(":", 3);
-                    if (parts.length == 3) {
-                        String chatPlayer = parts[1];
-                        String chatMessage = parts[2];
-                        room.broadcast("CHAT:" + chatPlayer + ":" + chatMessage);
-                        System.out.println("💬 Sohbet: " + chatPlayer + ": " + chatMessage);
-                    }
-                    continue;
-                }
+                // CHAT bloğu TAMAMEN KALDIRILDI!
 
                 if (message.startsWith("LEFT:")) {
                     room.broadcast("LEFT:" + playerName);
@@ -102,8 +109,7 @@ public class ClientHandler implements Runnable {
     public void sendMessage(String message) {
         if (out != null) {
             out.println(message);
-            System.out.println(">>> [Server] " + playerName + " için mesaj gönderildi: " + message);  // 🧠 BU SATIR
-
+            System.out.println(">>> [Server] " + playerName + " için mesaj gönderildi: " + message);
         }
     }
 

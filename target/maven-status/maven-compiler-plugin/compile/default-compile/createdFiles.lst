@@ -1,5 +1,4 @@
 model\Board.class
-ui\AnimationPanel.class
 ui\GamePanel.class
 model\Point.class
 logic\GameManager.class
@@ -15,7 +14,6 @@ ui\InfoPanel.class
 network\MultiClientServer.class
 ui\GamePanel$2.class
 network\MultiClientClient.class
-ui\AnimationPanel$1.class
 model\Player.class
 logic\DiceManager.class
 model\Color.class

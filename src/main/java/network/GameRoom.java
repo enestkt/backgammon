@@ -106,6 +106,41 @@ public class GameRoom {
         }
     }
 
+    public synchronized boolean isBarMoveValid(String playerName, int to) {
+        if (gameManager == null) {
+            return false;
+        }
+        Player player = playerName.equals(whiteName) ? whitePlayer : blackPlayer;
+        if (player == null) {
+            return false;
+        }
+        if (!getCurrentPlayerName().equals(playerName)) {
+            return false;
+        }
+        gameManager.setCurrentPlayer(player);
+        // Kontrolü GameManager’da yap
+        return gameManager.canEnterFromBarTo(to);
+    }
+
+    public synchronized boolean isMoveValuesEmpty() {
+        if (gameManager == null) {
+            return true;
+        }
+        return gameManager.getRemainingMoves().isEmpty();
+    }
+
+    public synchronized void applyBarMove(String playerName, int to) {
+        if (gameManager == null) {
+            return;
+        }
+        Player player = playerName.equals(whiteName) ? whitePlayer : blackPlayer;
+        if (player == null) {
+            return;
+        }
+        gameManager.setCurrentPlayer(player);
+        gameManager.moveFromBarServer(to);
+    }
+
     // Zar değerlerini GameManager'a gönder
     public synchronized void setDiceValues(int die1, int die2) {
         if (gameManager != null) {

@@ -51,16 +51,14 @@ public class MultiClientClient {
                 currentPlayer = message.substring(5).trim(); // Sırası gelen oyuncunun adı
                 System.out.println("🔄 Sıra: " + currentPlayer);
             }
-            // Geri kalan oyun mesajları (MOVE, ROLL, CHAT) GUI tarafında (GameFrame'de) işlenecek.
+            // Geri kalan oyun mesajları (MOVE, ROLL) GUI tarafında (GameFrame'de) işlenecek.
         } catch (Exception e) {
             System.err.println("⚠️ Mesaj işleme hatası: " + e.getMessage());
         }
     }
 
     // Oyun mesajları gönderimi (hepsinde kendi adını otomatik ekliyorsun)
-    public void sendChat(String chatMessage) {
-        sendMessage("CHAT:" + playerName + ":" + chatMessage);
-    }
+    // sendChat ve CHAT ile ilgili fonksiyonlar kaldırıldı.
 
     public void sendRoll(int die1, int die2) {
        sendMessage("ROLL:");

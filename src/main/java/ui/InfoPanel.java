@@ -12,9 +12,6 @@ public class InfoPanel extends JPanel {
 
     private GameManager gameManager;
     private MultiClientClient client;
-    private JTextArea chatArea;
-    private JTextField chatInput;
-    private JButton sendButton;
     private JLabel playerLabel;
     private JLabel diceLabel;
     private JLabel remainingLabel;
@@ -76,7 +73,6 @@ public class InfoPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Hareket yapacak taşınız yok. Sıra diğer oyuncuya geçti.");
                 // YALNIZCA SUNUCUYA MESAJ GÖNDER
                 client.sendMessage("SWITCH_TURN:");
-                // Local olarak gameManager.switchTurn(); veya updateInfo() YOK!
             } else {
                 JOptionPane.showMessageDialog(this, "Hareket yapabileceğiniz taşlar var!");
             }
@@ -97,9 +93,7 @@ public class InfoPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Zaten zar attınız, hamlenizi yapın!");
             } else {
                 if (gameManager.getRemainingMoves().size() == 0) {
-                    // *** LOCAL rollDice() YOK! ***
                     client.sendMessage("ROLL:");
-                    // Local olarak updateInfo() veya başka bir şey yok!
                 } else {
                     System.out.println("karşı rakip tüm hamlesini daha yapmadı");
                 }
@@ -109,35 +103,9 @@ public class InfoPanel extends JPanel {
         buttonPanel.add(rollButton);
         infoPanel.add(buttonPanel);
 
-        // Sohbet Alanı
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        JScrollPane chatScroll = new JScrollPane(chatArea);
-        chatScroll.setPreferredSize(new Dimension(280, 150));
-
-        chatInput = new JTextField();
-        sendButton = new JButton("Gönder");
-        sendButton.addActionListener(e -> {
-            String message = chatInput.getText();
-            String playerName = gameManager.getCurrentPlayer().getName();
-            if (!message.isEmpty()) {
-                client.sendChat(message);
-                chatArea.append(playerName + ": " + message + "\n");
-                chatInput.setText("");
-            }
-        });
-
-        JPanel chatPanel = new JPanel(new BorderLayout());
-        chatPanel.add(chatInput, BorderLayout.CENTER);
-        chatPanel.add(sendButton, BorderLayout.EAST);
-
         add(infoPanel, BorderLayout.NORTH);
-        add(chatScroll, BorderLayout.CENTER);
-        add(chatPanel, BorderLayout.SOUTH);
-    }
 
-    public void updateChat(String message) {
-        chatArea.append(message + "\n");
+        // --- CHAT Alanı, inputu, butonu ve fonksiyonları tamamen silindi! ---
     }
 
     public void updateInfo() {
@@ -154,19 +122,4 @@ public class InfoPanel extends JPanel {
         barWhiteLabel.setText("Bar (WHITE): " + gameManager.getBoard().getBarCount(Color.WHITE));
         barBlackLabel.setText("Bar (BLACK): " + gameManager.getBoard().getBarCount(Color.BLACK));
     }
-
-    public void appendMessage(String message) {
-        chatArea.append(message + "\n");
-    }
-
-    private void handlePassTurn() {
-        if (gameManager.hasNoAvailableMove()) {
-            JOptionPane.showMessageDialog(this, "Hareket yapacak taşınız yok. Sıra diğer oyuncuya geçti.");
-            gameManager.switchTurn();
-            updateInfo();
-        } else {
-            JOptionPane.showMessageDialog(this, "Hareket yapabileceğiniz taşlar var!");
-        }
-    }
-
 }

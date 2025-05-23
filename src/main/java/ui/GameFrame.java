@@ -66,7 +66,7 @@ public class GameFrame extends JFrame {
             } else if (message.startsWith("TURN:")) {
                 String turnPlayer = message.substring(5).split(":")[0].trim();
                 isMyTurn = turnPlayer.equals(myPlayerName);
-                 gameManager.setCurrentPlayerByName(turnPlayer); // <-- EKLE
+                gameManager.setCurrentPlayerByName(turnPlayer); // <-- EKLE
                 System.out.println("myPlayerName: " + myPlayerName + " turnPlayer: " + turnPlayer + " isMyTurn: " + isMyTurn);
                 infoPanel.setTurn(isMyTurn);
                 gamePanel.setTurn(isMyTurn);
@@ -88,8 +88,7 @@ public class GameFrame extends JFrame {
                 infoPanel.updateInfo();
                 gamePanel.repaint();
 
-            } else if (message.startsWith("CHAT:")) {
-                infoPanel.updateChat(message.substring(5));
+            // CHAT KISMI TAMAMEN SİLİNDİ!
 
             } else if (message.startsWith("ERROR:")) {
                 JOptionPane.showMessageDialog(this, message.substring(6), "Hata", JOptionPane.ERROR_MESSAGE);
@@ -103,7 +102,6 @@ public class GameFrame extends JFrame {
         }
     }
 
-    
     // Aşağıdaki methodlar GUI kodunu sadeleştiriyor:
     public void sendMove(int from, int to) {
         client.sendMove(from, to);
@@ -113,7 +111,5 @@ public class GameFrame extends JFrame {
         client.sendRoll(die1, die2);
     }
 
-    public void sendChatMessage(String chatMessage) {
-        client.sendChat(chatMessage);
-    }
+    // sendChatMessage ve chat ile ilgili metodlar kaldırıldı!
 }

@@ -331,6 +331,45 @@ public class GameManager {
     public void setCurrentPlayer(Player player) {
         this.currentPlayer = player;
     }
+    // Sadece bar'dan çıkışı kontrol et
+
+    public boolean canEnterFromBarTo(int targetIndex) {
+        Color color = currentPlayer.getColor();
+        for (int die : moveValues) {
+            int hedef = (color == Color.WHITE) ? die - 1 : 24 - die;
+            if (hedef == targetIndex) {
+                Point point = board.getPoint(targetIndex);
+                if (point.isEmpty() || point.getColor() == color || point.getCount() == 1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+// Sunucu için: bar’dan taş çıkar
+    public void moveFromBarServer(int toIndex) {
+        Color color = currentPlayer.getColor();
+        for (int die : moveValues) {
+            int hedef = (color == Color.WHITE) ? die - 1 : 24 - die;
+            if (hedef == toIndex) {
+                Point point = board.getPoint(toIndex);
+                System.out.println("BAR MOVE - Önce: Bar=" + board.getBarCount(color) + " -> [" + toIndex + "] " + point.getCount() + " taş");
+                if (point.isEmpty() || point.getColor() == color || point.getCount() == 1) {
+                    // Rakip taşı kır
+                    if (!point.isEmpty() && point.getColor() != color && point.getCount() == 1) {
+                        board.addToBar(point.getColor());
+                        point.removeChecker();
+                    }
+                    point.addChecker(color);
+                    board.removeFromBar(color);
+                    moveValues.remove((Integer) die);
+                    System.out.println("BAR MOVE - Sonra: Bar=" + board.getBarCount(color) + " -> [" + toIndex + "] " + point.getCount() + " taş");
+                    return;
+                }
+            }
+        }
+    }
 
     public boolean tryBearOff(int fromIndex) {
         Color color = currentPlayer.getColor();
